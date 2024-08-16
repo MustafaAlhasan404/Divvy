@@ -6,7 +6,6 @@ interface ThemeColors {
   background: string;
   text: string;
   accent: string;
-//   darkAccent: string;
 }
 
 const defaultTheme: ThemeColors = {
@@ -15,7 +14,6 @@ const defaultTheme: ThemeColors = {
     background: '#031314',
     text: '#00D09E',
     accent: '#00D09E',
-    // darkAccent: '#052224',
   };
 
 

@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Divvy",
-    "slug": "Divvy",
+    "slug": "divvy",
     "version": "1.0.0",
     "scheme": "divvy",
     "web": {
@@ -48,8 +48,15 @@
         "origin": false
       },
       "eas": {
-        "projectId": "b6d35511-e662-4fd5-9e71-bf1d3c43fdce"
+        "projectId": "38871d99-10cc-4b44-8cb4-5efc6e779f57"
       }
+    },
+    "owner": "divvy_saas",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/38871d99-10cc-4b44-8cb4-5efc6e779f57"
     }
   }
 }
