@@ -47,7 +47,7 @@ const Signup: React.FC = memo(() => {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           className="flex-1"
         >
-          <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="px-4 py-6 md:px-6 md:py-10">
+          <View style={{ flexGrow: 1 }} className="px-4 py-6 md:px-6 md:py-10">
             <View className="flex-1 justify-center">
               <Text style={{ color: theme.text }} className="text-3xl md:text-2xl font-bold bottom-16 self-center">
                 Create Account
@@ -117,7 +117,7 @@ const Signup: React.FC = memo(() => {
                 </Text>
               </TouchableOpacity>
             </View>
-          </ScrollView>
+          </View>
         </KeyboardAvoidingView>
       </SafeAreaView>
     </>
