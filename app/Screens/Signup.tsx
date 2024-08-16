@@ -36,7 +36,7 @@ const Signup: React.FC = memo(() => {
       <Stack.Screen options={{ headerShown: false }} />
       <StatusBar barStyle="light-content" backgroundColor={theme.primary} />
       <SafeAreaView style={{ flex: 1, backgroundColor: theme.primary }}>
-        <Animated.View 
+        <Animated.View
           style={[
             backgroundStyle,
             { position: 'absolute', bottom: 0, left: 0, right: 0, height: '125%', backgroundColor: theme.secondary }
@@ -49,7 +49,7 @@ const Signup: React.FC = memo(() => {
         >
           <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="px-4 py-6 md:px-6 md:py-10">
             <View className="flex-1 justify-center">
-            <Text style={{ color: theme.text }} className="text-6xl md:text-4xl font-bold bottom-16 self-center">
+              <Text style={{ color: theme.text }} className="text-3xl md:text-2xl font-bold bottom-16 self-center">
                 Create Account
               </Text>
 
@@ -70,6 +70,7 @@ const Signup: React.FC = memo(() => {
                     placeholderTextColor="#6B7280"
                     keyboardType={field.keyboardType}
                     autoCapitalize={field.autoCapitalize}
+                    keyboardAppearance="dark"
                   />
                 </View>
               ))}
@@ -86,6 +87,7 @@ const Signup: React.FC = memo(() => {
                       secureTextEntry
                       placeholder="••••••••"
                       placeholderTextColor="#6B7280"
+                      keyboardAppearance="dark"
                     />
                     <Ionicons name="eye-off-outline" size={24} color="#6B7280" style={{ position: 'absolute', right: 12, top: 12 }} />
                   </View>
