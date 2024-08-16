@@ -94,7 +94,7 @@ const Login: React.FC = memo(() => {
         <Animated.View
           style={[
             backgroundStyle,
-            { position: 'absolute', top: 0, left: 0, right: 0, height: '300%', backgroundColor: theme.secondary },
+            { position: 'absolute', top:-50, left: 0, right: 0, height: '125%', backgroundColor: theme.secondary },
           ]}
           className="rounded-b-[50px] md:rounded-b-[80px]"
         />
@@ -109,7 +109,6 @@ const Login: React.FC = memo(() => {
               <Text style={{ color: theme.text }} className="text-3xl md:text-2xl font-bold bottom-16 self-center">
                 Welcome
               </Text>
-
               <View style={{ marginBottom: 20 }}>
                 <TextInput
                   style={{
@@ -128,7 +127,6 @@ const Login: React.FC = memo(() => {
                   keyboardAppearance="dark"
                 />
               </View>
-
               <View style={{ marginBottom: 20 }}>
                 <View style={{ position: 'relative' }}>
                   <TextInput
@@ -151,11 +149,14 @@ const Login: React.FC = memo(() => {
                     onPress={() => setShowPassword(!showPassword)}
                     style={{ position: 'absolute', right: 15, top: 15 }}
                   >
-                    <Ionicons name={showPassword ? 'eye-outline' : 'eye-off-outline'} size={24} color="#6B7280" />
+                    <Ionicons
+                      name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                      size={24}
+                      color="#6B7280"
+                    />
                   </TouchableOpacity>
                 </View>
               </View>
-
               <TouchableOpacity
                 style={{
                   backgroundColor: theme.accent,
@@ -165,13 +166,13 @@ const Login: React.FC = memo(() => {
                 }}
                 onPress={handleLogin}
               >
-                <Text style={{ color: theme.primary, textAlign: 'center', fontSize: 18, fontWeight: 'bold' }}>Log In</Text>
+                <Text style={{ color: theme.primary, textAlign: 'center', fontSize: 18, fontWeight: 'bold' }}>
+                  Log In
+                </Text>
               </TouchableOpacity>
-
               <TouchableOpacity style={{ marginBottom: 20 }}>
                 <Text style={{ color: theme.accent, textAlign: 'center', fontSize: 16 }}>Forgot Password?</Text>
               </TouchableOpacity>
-
               <TouchableOpacity
                 style={{
                   backgroundColor: theme.primary,
@@ -185,7 +186,6 @@ const Login: React.FC = memo(() => {
                   Sign Up New Account
                 </Text>
               </TouchableOpacity>
-
               <View>
                 <Text style={{ color: theme.text, textAlign: 'center', fontSize: 14, marginBottom: 15 }}>
                   or sign up with
