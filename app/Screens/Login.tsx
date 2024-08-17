@@ -224,19 +224,6 @@ const Login: React.FC = memo(() => {
                   Sign Up New Account
                 </Text>
               </TouchableOpacity>
-              <View>
-                <Text style={{ color: theme.text, textAlign: 'center', fontSize: 14, marginBottom: 15 }}>
-                  or sign up with
-                </Text>
-                <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
-                  <TouchableOpacity style={{ backgroundColor: theme.primary, padding: 15, borderRadius: 30, marginRight: 20 }}>
-                    <Ionicons name="logo-facebook" size={30} color={theme.text} />
-                  </TouchableOpacity>
-                  <TouchableOpacity style={{ backgroundColor: theme.primary, padding: 15, borderRadius: 30 }}>
-                    <Ionicons name="logo-google" size={30} color={theme.text} />
-                  </TouchableOpacity>
-                </View>
-              </View>
             </View>
           </View>
         </Animated.View>
