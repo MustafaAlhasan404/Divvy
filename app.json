@@ -16,6 +16,12 @@
         {
           "launchMode": "most-recent"
         }
+      ],
+      [
+        "expo-font",
+        {
+          "fonts": ["./assets/fonts/Poppins-SemiBold.ttf"]
+        }
       ]
     ],
     "experiments": {

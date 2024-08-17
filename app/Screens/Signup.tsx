@@ -1,21 +1,61 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
-import React, { useState, memo, useEffect } from 'react';
+import React, { useState, memo, useEffect, useRef } from 'react';
 import {
   Animated,
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  StatusBar,
-  KeyboardTypeOptions,
   SafeAreaView,
+  StatusBar,
   Keyboard,
   Platform,
   KeyboardEvent,
+  TextStyle,
 } from 'react-native';
 
 import { useTheme } from '../../ThemeContext';
+
+const commonTextStyle: TextStyle = {
+  fontFamily: 'Poppins-SemiBold',
+};
+
+const TypewriterText: React.FC<{ text: string; delay?: number; style?: TextStyle }> = ({ text, delay = 100, style }) => {
+  const [displayedText, setDisplayedText] = useState('');
+  const [showCursor, setShowCursor] = useState(true);
+  const [isTypingComplete, setIsTypingComplete] = useState(false);
+  const cursorRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    let i = 0;
+    const typingEffect = setInterval(() => {
+      if (i < text.length) {
+        setDisplayedText((prev) => prev + text.charAt(i));
+        i++;
+      } else {
+        clearInterval(typingEffect);
+        setIsTypingComplete(true);
+      }
+    }, delay);
+
+    cursorRef.current = setInterval(() => {
+      setShowCursor((prev) => !prev);
+    }, 500);
+
+    return () => {
+      clearInterval(typingEffect);
+      if (cursorRef.current) clearInterval(cursorRef.current);
+    };
+  }, [text, delay]);
+
+  return (
+    <Text style={[commonTextStyle, style]}>
+      {displayedText}
+      {!isTypingComplete && <Text style={{ opacity: showCursor ? 1 : 0 }}>|</Text>}
+    </Text>
+  );
+};
 
 const Signup: React.FC = memo(() => {
   const theme = useTheme();
@@ -25,10 +65,12 @@ const Signup: React.FC = memo(() => {
   const [dateOfBirth, setDateOfBirth] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
   const router = useRouter();
   const [animation] = useState(new Animated.Value(0));
-  const [stage, setStage] = useState(1);
   const [keyboardOffset] = useState(new Animated.Value(0));
+  const [stage, setStage] = useState<number>(1);
 
   useEffect(() => {
     Animated.timing(animation, {
@@ -54,17 +96,16 @@ const Signup: React.FC = memo(() => {
 
   const keyboardWillShow = (event: KeyboardEvent) => {
     const keyboardHeight = event.endCoordinates.height;
-    // Adjust the translation value as per your UI needs
     Animated.timing(keyboardOffset, {
-      duration: event.duration,
-      toValue: -keyboardHeight / 2.5, // Modify this value to control the view shift
+      duration: event.duration || 300,
+      toValue: -keyboardHeight / 2.5,
       useNativeDriver: true,
     }).start();
   };
 
   const keyboardWillHide = (event: KeyboardEvent) => {
     Animated.timing(keyboardOffset, {
-      duration: event.duration,
+      duration: event.duration || 300,
       toValue: 0,
       useNativeDriver: true,
     }).start();
@@ -85,118 +126,84 @@ const Signup: React.FC = memo(() => {
     // Implement signup functionality
   };
 
-  const renderStageOne = () => (
-    <>
-      {[
-        { label: 'Full Name', value: fullName, setter: setFullName, placeholder: 'John Doe' },
-        {
-          label: 'Email',
-          value: email,
-          setter: setEmail,
-          placeholder: 'example@example.com',
-          keyboardType: 'email-address' as KeyboardTypeOptions,
-          autoCapitalize: 'none' as 'none',
-        },
-        {
-          label: 'Mobile Number',
-          value: mobileNumber,
-          setter: setMobileNumber,
-          placeholder: '+1 123 456 789',
-          keyboardType: 'phone-pad' as KeyboardTypeOptions,
-        },
-        { label: 'Date Of Birth', value: dateOfBirth, setter: setDateOfBirth, placeholder: 'DD/MM/YYYY' },
-      ].map((field, index) => (
-        <View key={index} style={{ marginBottom: 20 }}>
-          <TextInput
-            style={{
-              backgroundColor: theme.primary,
-              color: theme.text,
-              borderRadius: 15,
-              padding: 15,
-              fontSize: 16,
-            }}
-            value={field.value}
-            onChangeText={field.setter}
-            placeholder={field.placeholder}
-            placeholderTextColor="#6B7280"
-            keyboardType={field.keyboardType}
-            autoCapitalize={field.autoCapitalize}
-            keyboardAppearance="dark"
-          />
-        </View>
-      ))}
-      <TouchableOpacity
-        style={{ backgroundColor: theme.accent }}
-        className="py-3 md:py-4 rounded-2xl mb-4"
-        onPress={() => setStage(2)}
-      >
-        <Text style={{ color: theme.primary }} className="text-center text-base md:text-lg font-semibold">
-          Next
-        </Text>
-      </TouchableOpacity>
-    </>
+  const renderInput = (
+    value: string,
+    setter: React.Dispatch<React.SetStateAction<string>>,
+    placeholder: string,
+    secureTextEntry: boolean = false,
+    showPasswordState?: boolean,
+    setShowPasswordState?: React.Dispatch<React.SetStateAction<boolean>>
+  ) => (
+    <View style={{ marginBottom: 20 }}>
+      <View style={{ position: 'relative' }}>
+        <TextInput
+          style={[commonTextStyle, {
+            backgroundColor: theme.primary,
+            color: theme.text,
+            borderRadius: 15,
+            padding: 15,
+            fontSize: 16,
+            paddingRight: secureTextEntry ? 50 : 15,
+          }]}
+          value={value}
+          onChangeText={setter}
+          secureTextEntry={secureTextEntry && !showPasswordState}
+          placeholder={placeholder}
+          placeholderTextColor="#6B7280"
+          keyboardAppearance="dark"
+        />
+        {secureTextEntry && setShowPasswordState && (
+          <TouchableOpacity
+            onPress={() => setShowPasswordState(!showPasswordState)}
+            style={{ position: 'absolute', right: 15, top: 15 }}
+          >
+            <Ionicons
+              name={showPasswordState ? 'eye-outline' : 'eye-off-outline'}
+              size={24}
+              color="#6B7280"
+            />
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
   );
 
-  const renderStageTwo = () => (
-    <>
-      <View style={{ marginBottom: 20 }}>
-        <View style={{ position: 'relative' }}>
-          <TextInput
-            style={{
-              backgroundColor: theme.primary,
-              color: theme.text,
-              borderRadius: 15,
-              padding: 15,
-              fontSize: 16,
-              paddingRight: 50,
-            }}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            placeholder="Password"
-            placeholderTextColor="#6B7280"
-            keyboardAppearance="dark"
-          />
-          <Ionicons name="eye-off-outline" size={24} color="#6B7280" style={{ position: 'absolute', right: 12, top: 12 }} />
-        </View>
-      </View>
-      <View style={{ marginBottom: 20 }}>
-        <View style={{ position: 'relative' }}>
-          <TextInput
-            style={{
-              backgroundColor: theme.primary,
-              color: theme.text,
-              borderRadius: 15,
-              padding: 15,
-              fontSize: 16,
-              paddingRight: 50,
-            }}
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-            placeholder="Confirm Password"
-            placeholderTextColor="#6B7280"
-            keyboardAppearance="dark"
-          />
-          <Ionicons name="eye-off-outline" size={24} color="#6B7280" style={{ position: 'absolute', right: 12, top: 12 }} />
-        </View>
-      </View>
+  const renderStage = () => {
+    switch (stage) {
+      case 1:
+        return (
+          <>
+            {renderInput(fullName, setFullName, "Full Name")}
+            {renderInput(email, setEmail, "Email")}
+          </>
+        );
+      case 2:
+        return (
+          <>
+            {renderInput(mobileNumber, setMobileNumber, "Mobile Number")}
+            {renderInput(dateOfBirth, setDateOfBirth, "Date of Birth")}
+          </>
+        );
+      case 3:
+        return (
+          <>
+            {renderInput(password, setPassword, "Password", true, showPassword, setShowPassword)}
+            {renderInput(confirmPassword, setConfirmPassword, "Confirm Password", true, showConfirmPassword, setShowConfirmPassword)}
+          </>
+        );
+      default:
+        return null;
+    }
+  };
 
-      <Text style={{ color: theme.text }} className="text-xs mb-4 text-center">
-        By continuing, you agree to Terms of Use and Privacy Policy.
-      </Text>
+  const handleNext = () => {
+    if (stage < 3) setStage(stage + 1);
+    else handleSignup();
+  };
 
-      <TouchableOpacity
-        style={{ backgroundColor: theme.accent }}
-        className="py-3 md:py-4 rounded-2xl mb-4"
-        onPress={handleSignup}
-      >
-        <Text style={{ color: theme.primary }} className="text-center text-base md:text-lg font-semibold">
-          Sign Up
-        </Text>
-      </TouchableOpacity>
-    </>
-  );
+  const handleBack = () => {
+    if (stage > 1) setStage(stage - 1);
+  };
 
   return (
     <>
@@ -206,18 +213,11 @@ const Signup: React.FC = memo(() => {
         <Animated.View
           style={[
             backgroundStyle,
-            { 
-              position: 'absolute', 
-              top: -50,  
-              left: 0, 
-              right: 0, 
-              height: '125%', 
-              backgroundColor: theme.secondary,
-            },
+            { position: 'absolute', top:-50, left: 0, right: 0, height: '125%', backgroundColor: theme.secondary },
           ]}
           className="rounded-t-[50px] md:rounded-t-[80px]"
         />
-        <Animated.View 
+        <Animated.View
           style={{
             flex: 1,
             transform: [{ translateY: keyboardOffset }],
@@ -225,15 +225,34 @@ const Signup: React.FC = memo(() => {
         >
           <View style={{ flexGrow: 1 }} className="px-4 py-6 md:px-6 md:py-10">
             <View className="flex-1 justify-center">
-              <Text style={{ color: theme.text }} className="text-3xl md:text-2xl font-bold bottom-16 self-center">
-                {stage === 1 ? 'Create Account' : 'Set Password'}
-              </Text>
-              {stage === 1 ? renderStageOne() : renderStageTwo()}
-
-              <TouchableOpacity className="py-2" onPress={() => router.push('../Screens/Login')}>
-                <Text style={{ color: theme.text }} className="text-center text-sm">
-                  Already have an account?{' '}
-                  <Text style={{ color: theme.accent }}>Log In</Text>
+              <TypewriterText
+                text="Create Account"
+                style={{ color: theme.text, fontSize: 36, fontWeight: 'bold', marginBottom: 30, textAlign: 'center' }}
+              />
+              {renderStage()}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 }}>
+                {stage > 1 && (
+                  <TouchableOpacity
+                    style={{ backgroundColor: theme.secondary, padding: 15, borderRadius: 15 }}
+                    onPress={handleBack}
+                  >
+                    <Text style={[commonTextStyle, { color: theme.text, textAlign: 'center', fontSize: 18 }]}>
+                      Back
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  style={{ backgroundColor: theme.accent, padding: 15, borderRadius: 15 }}
+                  onPress={handleNext}
+                >
+                  <Text style={[commonTextStyle, { color: theme.primary, textAlign: 'center', fontSize: 18, fontWeight: 'bold' }]}>
+                    {stage === 3 ? 'Sign Up' : 'Next'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity onPress={() => router.push('../Screens/Login')}>
+                <Text style={[commonTextStyle, { color: theme.text, textAlign: 'center', fontSize: 16, marginTop: 20 }]}>
+                  Already have an account? <Text style={{ color: theme.accent }}>Log In</Text>
                 </Text>
               </TouchableOpacity>
             </View>

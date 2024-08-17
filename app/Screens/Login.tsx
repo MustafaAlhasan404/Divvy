@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
-import React, { useState, memo, useEffect } from 'react';
+import React, { useState, memo, useEffect, useRef } from 'react';
 import {
   Animated,
   View,
@@ -12,9 +12,46 @@ import {
   Keyboard,
   Platform,
   KeyboardEvent,
+  TextStyle,
 } from 'react-native';
 
 import { useTheme } from '../../ThemeContext';
+
+const TypewriterText: React.FC<{ text: string; delay?: number; style?: TextStyle }> = ({ text, delay = 100, style }) => {
+  const [displayedText, setDisplayedText] = useState('');
+  const [showCursor, setShowCursor] = useState(true);
+  const [isTypingComplete, setIsTypingComplete] = useState(false);
+  const cursorRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    let i = 0;
+    const typingEffect = setInterval(() => {
+      if (i < text.length) {
+        setDisplayedText((prev) => prev + text.charAt(i));
+        i++;
+      } else {
+        clearInterval(typingEffect);
+        setIsTypingComplete(true);
+      }
+    }, delay);
+
+    cursorRef.current = setInterval(() => {
+      setShowCursor((prev) => !prev);
+    }, 500);
+
+    return () => {
+      clearInterval(typingEffect);
+      if (cursorRef.current) clearInterval(cursorRef.current);
+    };
+  }, [text, delay]);
+
+  return (
+    <Text style={style}>
+      {displayedText}
+      {!isTypingComplete && <Text style={{ opacity: showCursor ? 1 : 0 }}>|</Text>}
+    </Text>
+  );
+};
 
 const Login: React.FC = memo(() => {
   const theme = useTheme();
@@ -23,17 +60,15 @@ const Login: React.FC = memo(() => {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const router = useRouter();
   const [animation] = useState(new Animated.Value(0));
-  const [keyboardOffset] = useState(new Animated.Value(0)); // State for keyboard offset
+  const [keyboardOffset] = useState(new Animated.Value(0));
 
   useEffect(() => {
-    // Start the entry animation
     Animated.timing(animation, {
       toValue: 1,
       duration: 900,
       useNativeDriver: true,
     }).start();
 
-    // Add keyboard event listeners
     const keyboardWillShowListener = Keyboard.addListener(
       Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
       keyboardWillShow
@@ -43,24 +78,21 @@ const Login: React.FC = memo(() => {
       keyboardWillHide
     );
 
-    // Cleanup listeners on component unmount
     return () => {
       keyboardWillShowListener.remove();
       keyboardWillHideListener.remove();
     };
   }, []);
 
-  // Function to handle the keyboard showing event
   const keyboardWillShow = (event: KeyboardEvent) => {
     const keyboardHeight = event.endCoordinates.height;
     Animated.timing(keyboardOffset, {
       duration: event.duration || 300,
-      toValue: -keyboardHeight / 2.5, // Adjust this value as needed
+      toValue: -keyboardHeight / 2.5,
       useNativeDriver: true,
     }).start();
   };
 
-  // Function to handle the keyboard hiding event
   const keyboardWillHide = (event: KeyboardEvent) => {
     Animated.timing(keyboardOffset, {
       duration: event.duration || 300,
@@ -69,7 +101,6 @@ const Login: React.FC = memo(() => {
     }).start();
   };
 
-  // Background animation style
   const backgroundStyle = {
     transform: [
       {
@@ -81,7 +112,6 @@ const Login: React.FC = memo(() => {
     ],
   };
 
-  // Function to handle login button press
   const handleLogin = () => {
     // Implement login functionality
   };
@@ -94,21 +124,29 @@ const Login: React.FC = memo(() => {
         <Animated.View
           style={[
             backgroundStyle,
-            { position: 'absolute', top:-50, left: 0, right: 0, height: '125%', backgroundColor: theme.secondary },
+            { position: 'absolute', top: -50, left: 0, right: 0, height: '125%', backgroundColor: theme.secondary },
           ]}
           className="rounded-b-[50px] md:rounded-b-[80px]"
         />
         <Animated.View
           style={{
             flex: 1,
-            transform: [{ translateY: keyboardOffset }], // Apply keyboard offset
+            transform: [{ translateY: keyboardOffset }],
           }}
         >
           <View style={{ flexGrow: 1 }} className="px-4 py-6 md:px-6 md:py-10">
             <View className="flex-1 justify-center">
-              <Text style={{ color: theme.text }} className="text-3xl md:text-2xl font-bold bottom-16 self-center">
-                Welcome
-              </Text>
+              <TypewriterText
+                text="Welcome"
+                style={{
+                  color: theme.text,
+                  fontSize: 36,
+                  fontWeight: 'bold',
+                  marginBottom: 30,
+                  textAlign: 'center',
+                  fontFamily: 'Poppins-SemiBold'
+                }}
+              />
               <View style={{ marginBottom: 20 }}>
                 <TextInput
                   style={{
