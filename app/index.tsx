@@ -35,8 +35,8 @@ const Home = memo(() => {
     router.push('../Screens/Signup');
   }, [router]);
 
-  const ForgotPress = useCallback(() => {
-    router.push('../Screens/ForgotPassword');
+  const MainPress = useCallback(() => {
+    router.push('../Screens/MainScreen');
   }, [router]);
   
   if (!fontsLoaded) {
@@ -74,14 +74,14 @@ const Home = memo(() => {
           </TouchableOpacity>
           
           <TouchableOpacity
-            onPress={ForgotPress}
+            onPress={MainPress}
             className="bg-blue-500 py-3 px-6 rounded-lg"
           >
             <Text
               className="text-white font-semibold text-lg"
               style={{ fontFamily: 'PoppinsSemiBold' }}
             >
-              Go to Forgot
+              Go to Main
             </Text>
           </TouchableOpacity>
         </View>
