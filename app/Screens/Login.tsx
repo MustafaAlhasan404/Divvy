@@ -144,7 +144,7 @@ const Login: React.FC = memo(() => {
                   fontWeight: 'bold',
                   marginBottom: 30,
                   textAlign: 'center',
-                  fontFamily: 'Poppins-SemiBold'
+                  fontFamily: 'PoppinsSemiBold'
                 }}
               />
               <View style={{ marginBottom: 20 }}>
@@ -155,6 +155,7 @@ const Login: React.FC = memo(() => {
                     borderRadius: 15,
                     padding: 15,
                     fontSize: 16,
+                    fontFamily: 'PoppinsSemiBold',
                   }}
                   value={email}
                   onChangeText={setEmail}
@@ -175,6 +176,7 @@ const Login: React.FC = memo(() => {
                       padding: 15,
                       fontSize: 16,
                       paddingRight: 50,
+                      fontFamily: 'PoppinsSemiBold',
                     }}
                     value={password}
                     onChangeText={setPassword}
@@ -204,12 +206,14 @@ const Login: React.FC = memo(() => {
                 }}
                 onPress={handleLogin}
               >
-                <Text style={{ color: theme.primary, textAlign: 'center', fontSize: 18, fontWeight: 'bold' }}>
+                <Text style={{ fontFamily: 'PoppinsSemiBold', color: theme.primary, textAlign: 'center', fontSize: 18, fontWeight: 'bold' }}>
                   Log In
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity style={{ marginBottom: 20 }}>
-                <Text style={{ color: theme.accent, textAlign: 'center', fontSize: 16 }}>Forgot Password?</Text>
+              <TouchableOpacity style={{ marginBottom: 20 }}
+              onPress={() => router.push('../Screens/ForgotPassword')}
+              >
+                <Text style={{ fontFamily: 'PoppinsSemiBold', color: theme.accent, textAlign: 'center', fontSize: 14 }}>Forgot Password?</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={{
@@ -220,7 +224,7 @@ const Login: React.FC = memo(() => {
                 }}
                 onPress={() => router.push('../Screens/Signup')}
               >
-                <Text style={{ color: theme.text, textAlign: 'center', fontSize: 18, fontWeight: 'bold' }}>
+                <Text style={{ fontFamily: 'PoppinsSemiBold', color: theme.text, textAlign: 'center', fontSize: 18, fontWeight: 'bold' }}>
                   Sign Up New Account
                 </Text>
               </TouchableOpacity>

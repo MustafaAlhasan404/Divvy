@@ -15,15 +15,17 @@ const Home = memo(() => {
 
   const loadFonts = async () => {
     await Font.loadAsync({
-      PoppinsSemiBold: require('../assets/fonts/Poppins-SemiBold.ttf'),
+      PoppinsSemiBold: require('../assets/fonts/PoppinsSemiBold.ttf'),
+      PoppinsSemiBoldItalic: require('../assets/fonts/PoppinsSemiBoldItalic.ttf'),
+      Montserrat:require ("../assets/fonts/Montserrat.ttf"),
     });
     setFontsLoaded(true);
-    SplashScreen.hideAsync(); // Hide the splash screen once the font is loaded
+    SplashScreen.hideAsync();
   };
-
+  
   useEffect(() => {
     loadFonts();
-  }, []);
+  }, []);  
 
   const handleLoginPress = useCallback(() => {
     router.push('../Screens/Login');
@@ -33,9 +35,14 @@ const Home = memo(() => {
     router.push('../Screens/Signup');
   }, [router]);
 
+  const ForgotPress = useCallback(() => {
+    router.push('../Screens/ForgotPassword');
+  }, [router]);
+  
   if (!fontsLoaded) {
     return null; // Prevent rendering until fonts are loaded
   }
+
 
   return (
     <>
@@ -48,7 +55,7 @@ const Home = memo(() => {
           >
             <Text
               className="text-white font-semibold text-lg"
-              style={{ fontFamily: 'Poppins-SemiBold' }}
+              style={{ fontFamily: 'PoppinsSemiBold' }}
             >
               Go to Login
             </Text>
@@ -56,13 +63,25 @@ const Home = memo(() => {
 
           <TouchableOpacity
             onPress={handleSignUpPress}
+            className="bg-blue-500 py-3 px-6 rounded-lg mb-4"
+          >
+            <Text
+              className="text-white font-semibold text-lg"
+              style={{ fontFamily: 'PoppinsSemiBold' }}
+            >
+              Go to Signup
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            onPress={ForgotPress}
             className="bg-blue-500 py-3 px-6 rounded-lg"
           >
             <Text
               className="text-white font-semibold text-lg"
-              style={{ fontFamily: 'Poppins-SemiBold' }}
+              style={{ fontFamily: 'PoppinsSemiBold' }}
             >
-              Go to Signup
+              Go to Forgot
             </Text>
           </TouchableOpacity>
         </View>

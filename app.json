@@ -20,7 +20,7 @@
       [
         "expo-font",
         {
-          "fonts": ["./assets/fonts/Poppins-SemiBold.ttf"]
+          "fonts": ["./assets/fonts/PoppinsSemiBold.ttf","./assets/fonts/PoppinsSemiBoldItalic.ttf","./assets/fonts/Montserrat.ttf"]
         }
       ]
     ],

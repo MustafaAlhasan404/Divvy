@@ -18,7 +18,7 @@ import {
 import { useTheme } from '../../ThemeContext';
 
 const commonTextStyle: TextStyle = {
-  fontFamily: 'Poppins-SemiBold',
+  fontFamily: 'PoppinsSemiBold',
 };
 
 const TypewriterText: React.FC<{ text: string; delay?: number; style?: TextStyle }> = ({ text, delay = 100, style }) => {
@@ -252,7 +252,7 @@ const Signup: React.FC = memo(() => {
               </View>
               
               <View>
-                <Text style={{ color: theme.text, textAlign: 'center', fontSize: 16, marginBottom: 15 }}>
+                <Text style={[commonTextStyle, { color: theme.text, textAlign: 'center', fontSize: 14, marginBottom: 15 }]}>
                   or sign up with
                 </Text>
                 <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
@@ -266,7 +266,7 @@ const Signup: React.FC = memo(() => {
               </View>
               
               <TouchableOpacity onPress={() => router.push('../Screens/Login')}>
-                <Text style={[commonTextStyle, { color: theme.text, textAlign: 'center', fontSize: 16, marginTop: 20 }]}>
+                <Text style={[commonTextStyle, { color: theme.text, textAlign: 'center', fontSize: 14, marginTop: 20 }]}>
                   Already have an account? <Text style={{ color: theme.accent }}>Log In</Text>
                 </Text>
               </TouchableOpacity>
