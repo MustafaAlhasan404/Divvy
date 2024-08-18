@@ -12,6 +12,7 @@ import {
     Platform,
     KeyboardEvent,
     TextStyle,
+    KeyboardAvoidingView,
 } from 'react-native';
 
 import { useTheme } from '../../ThemeContext';
@@ -115,19 +116,21 @@ const VerifyCode: React.FC = memo(() => {
             useNativeDriver: true,
         }).start();
 
-        const keyboardWillShowListener = Keyboard.addListener(
-            Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-            keyboardWillShow
-        );
-        const keyboardWillHideListener = Keyboard.addListener(
-            Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-            keyboardWillHide
-        );
+        if (Platform.OS === 'ios') {
+            const keyboardWillShowListener = Keyboard.addListener(
+                'keyboardWillShow',
+                keyboardWillShow
+            );
+            const keyboardWillHideListener = Keyboard.addListener(
+                'keyboardWillHide',
+                keyboardWillHide
+            );
 
-        return () => {
-            keyboardWillShowListener.remove();
-            keyboardWillHideListener.remove();
-        };
+            return () => {
+                keyboardWillShowListener.remove();
+                keyboardWillHideListener.remove();
+            };
+        }
     }, []);
 
     const keyboardWillShow = (event: KeyboardEvent) => {
@@ -164,6 +167,46 @@ const VerifyCode: React.FC = memo(() => {
         // Navigate to reset password screen or show success message
     };
 
+    const renderContent = () => (
+        <View style={{ flexGrow: 1 }} className="px-4 py-6 md:px-6 md:py-10">
+            <View className="flex-1 justify-center">
+                <TypewriterText
+                    text="Verify Code"
+                    style={{
+                        color: theme.text,
+                        fontSize: 36,
+                        fontWeight: 'bold',
+                        marginBottom: 30,
+                        textAlign: 'center',
+                        fontFamily: 'PoppinsSemiBold'
+                    }}
+                />
+                <Text style={{ fontFamily: 'PoppinsSemiBold', color: theme.accent, fontSize: 14, marginBottom: 30, textAlign: 'center' }}>
+                    Code is sent to your email
+                </Text>
+                <CodeInput code={code} setCode={setCode} theme={theme} fontFamily="PoppinsSemiBold" />
+                <TouchableOpacity
+                    style={{
+                        backgroundColor: theme.accent,
+                        padding: 15,
+                        borderRadius: 15,
+                        marginBottom: 20,
+                    }}
+                    onPress={handleVerifyCode}
+                >
+                    <Text style={{ fontFamily: 'PoppinsSemiBold', color: theme.primary, textAlign: 'center', fontSize: 18, fontWeight: 'bold' }}>
+                        Verify Code
+                    </Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => router.back()}>
+                    <Text style={{ fontFamily: 'PoppinsSemiBold', color: theme.text, textAlign: 'center', fontSize: 14 }}>
+                        Didn't receive the code? <Text style={{ fontFamily: 'PoppinsSemiBold', color: theme.accent }}>Resend</Text>
+                    </Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+
     return (
         <>
             <Stack.Screen options={{ headerShown: false }} />
@@ -176,50 +219,23 @@ const VerifyCode: React.FC = memo(() => {
                     ]}
                     className="rounded-b-[50px] md:rounded-b-[80px]"
                 />
-                <Animated.View
-                    style={{
-                        flex: 1,
-                        transform: [{ translateY: keyboardOffset }],
-                    }}
-                >
-                    <View style={{ flexGrow: 1 }} className="px-4 py-6 md:px-6 md:py-10">
-                        <View className="flex-1 justify-center">
-                            <TypewriterText
-                                text="Verify Code"
-                                style={{
-                                    color: theme.text,
-                                    fontSize: 36,
-                                    fontWeight: 'bold',
-                                    marginBottom: 30,
-                                    textAlign: 'center',
-                                    fontFamily: 'PoppinsSemiBold'
-                                }}
-                            />
-                            <Text style={{ fontFamily: 'PoppinsSemiBold', color: theme.accent, fontSize: 14, marginBottom: 30, textAlign: 'center' }}>
-                                Code is sent to your email
-                            </Text>
-                            <CodeInput code={code} setCode={setCode} theme={theme} fontFamily="PoppinsSemiBold" />
-                            <TouchableOpacity
-                                style={{
-                                    backgroundColor: theme.accent,
-                                    padding: 15,
-                                    borderRadius: 15,
-                                    marginBottom: 20,
-                                }}
-                                onPress={handleVerifyCode}
-                            >
-                                <Text style={{ fontFamily: 'PoppinsSemiBold', color: theme.primary, textAlign: 'center', fontSize: 18, fontWeight: 'bold' }}>
-                                    Verify Code
-                                </Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity onPress={() => router.back()}>
-                                <Text style={{ fontFamily: 'PoppinsSemiBold', color: theme.text, textAlign: 'center', fontSize: 14 }}>
-                                    Didn't receive the code? <Text style={{ fontFamily: 'PoppinsSemiBold', color: theme.accent }}>Resend</Text>
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </Animated.View>
+                {Platform.OS === 'ios' ? (
+                    <Animated.View
+                        style={{
+                            flex: 1,
+                            transform: [{ translateY: keyboardOffset }],
+                        }}
+                    >
+                        {renderContent()}
+                    </Animated.View>
+                ) : (
+                    <KeyboardAvoidingView
+                        behavior="padding"
+                        className="flex-1 mt-16"
+                    >
+                        {renderContent()}
+                    </KeyboardAvoidingView>
+                )}
             </SafeAreaView>
         </>
     );

@@ -13,6 +13,7 @@ import {
   Platform,
   KeyboardEvent,
   TextStyle,
+  KeyboardAvoidingView,
 } from 'react-native';
 
 import { useTheme } from '../../ThemeContext';
@@ -69,19 +70,21 @@ const Login: React.FC = memo(() => {
       useNativeDriver: true,
     }).start();
 
-    const keyboardWillShowListener = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      keyboardWillShow
-    );
-    const keyboardWillHideListener = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-      keyboardWillHide
-    );
+    if (Platform.OS === 'ios') {
+      const keyboardWillShowListener = Keyboard.addListener(
+        'keyboardWillShow',
+        keyboardWillShow
+      );
+      const keyboardWillHideListener = Keyboard.addListener(
+        'keyboardWillHide',
+        keyboardWillHide
+      );
 
-    return () => {
-      keyboardWillShowListener.remove();
-      keyboardWillHideListener.remove();
-    };
+      return () => {
+        keyboardWillShowListener.remove();
+        keyboardWillHideListener.remove();
+      };
+    }
   }, []);
 
   const keyboardWillShow = (event: KeyboardEvent) => {
@@ -116,6 +119,105 @@ const Login: React.FC = memo(() => {
     // Implement login functionality
   };
 
+  const renderContent = () => (
+    <View style={{ flexGrow: 1 }} className="px-4 py-6 md:px-6 md:py-10">
+      <View className="flex-1 justify-center">
+        <TypewriterText
+          text="Welcome"
+          style={{
+            color: theme.text,
+            fontSize: 36,
+            fontWeight: 'bold',
+            marginBottom: 30,
+            textAlign: 'center',
+            fontFamily: 'PoppinsSemiBold'
+          }}
+        />
+        <View style={{ marginBottom: 20 }}>
+          <TextInput
+            style={{
+              backgroundColor: theme.primary,
+              color: theme.text,
+              borderRadius: 15,
+              padding: 15,
+              fontSize: 16,
+              fontFamily: 'PoppinsSemiBold',
+            }}
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            placeholder="Username Or Email"
+            placeholderTextColor="#6B7280"
+            keyboardAppearance="dark"
+          />
+        </View>
+        <View style={{ marginBottom: 20 }}>
+          <View style={{ position: 'relative' }}>
+            <TextInput
+              style={{
+                backgroundColor: theme.primary,
+                color: theme.text,
+                borderRadius: 15,
+                padding: 15,
+                fontSize: 16,
+                paddingRight: 50,
+                fontFamily: 'PoppinsSemiBold',
+              }}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              placeholder="Password"
+              placeholderTextColor="#6B7280"
+              keyboardAppearance="dark"
+            />
+            <TouchableOpacity
+              onPress={() => setShowPassword(!showPassword)}
+              style={{ position: 'absolute', right: 15, top: 15 }}
+            >
+              <Ionicons
+                name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                size={24}
+                color="#6B7280"
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+        <TouchableOpacity
+          style={{
+            backgroundColor: theme.accent,
+            padding: 15,
+            borderRadius: 15,
+            marginBottom: 20,
+          }}
+          onPress={handleLogin}
+        >
+          <Text style={{ fontFamily: 'PoppinsSemiBold', color: theme.primary, textAlign: 'center', fontSize: 18, fontWeight: 'bold' }}>
+            Log In
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={{ marginBottom: 20 }}
+        onPress={() => router.push('../Screens/ForgotPassword')}
+        >
+          <Text style={{ fontFamily: 'PoppinsSemiBold', color: theme.accent, textAlign: 'center', fontSize: 14 }}>Forgot Password?</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={{
+            backgroundColor: theme.primary,
+            padding: 15,
+            borderRadius: 15,
+            marginBottom: 30,
+          }}
+          onPress={() => router.push('../Screens/Signup')}
+        >
+          <Text style={{ fontFamily: 'PoppinsSemiBold', color: theme.text, textAlign: 'center', fontSize: 18, fontWeight: 'bold' }}>
+            Sign Up New Account
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
@@ -128,109 +230,23 @@ const Login: React.FC = memo(() => {
           ]}
           className="rounded-b-[50px] md:rounded-b-[80px]"
         />
-        <Animated.View
-          style={{
-            flex: 1,
-            transform: [{ translateY: keyboardOffset }],
-          }}
-        >
-          <View style={{ flexGrow: 1 }} className="px-4 py-6 md:px-6 md:py-10">
-            <View className="flex-1 justify-center">
-              <TypewriterText
-                text="Welcome"
-                style={{
-                  color: theme.text,
-                  fontSize: 36,
-                  fontWeight: 'bold',
-                  marginBottom: 30,
-                  textAlign: 'center',
-                  fontFamily: 'PoppinsSemiBold'
-                }}
-              />
-              <View style={{ marginBottom: 20 }}>
-                <TextInput
-                  style={{
-                    backgroundColor: theme.primary,
-                    color: theme.text,
-                    borderRadius: 15,
-                    padding: 15,
-                    fontSize: 16,
-                    fontFamily: 'PoppinsSemiBold',
-                  }}
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  placeholder="Username Or Email"
-                  placeholderTextColor="#6B7280"
-                  keyboardAppearance="dark"
-                />
-              </View>
-              <View style={{ marginBottom: 20 }}>
-                <View style={{ position: 'relative' }}>
-                  <TextInput
-                    style={{
-                      backgroundColor: theme.primary,
-                      color: theme.text,
-                      borderRadius: 15,
-                      padding: 15,
-                      fontSize: 16,
-                      paddingRight: 50,
-                      fontFamily: 'PoppinsSemiBold',
-                    }}
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!showPassword}
-                    placeholder="Password"
-                    placeholderTextColor="#6B7280"
-                    keyboardAppearance="dark"
-                  />
-                  <TouchableOpacity
-                    onPress={() => setShowPassword(!showPassword)}
-                    style={{ position: 'absolute', right: 15, top: 15 }}
-                  >
-                    <Ionicons
-                      name={showPassword ? 'eye-outline' : 'eye-off-outline'}
-                      size={24}
-                      color="#6B7280"
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
-              <TouchableOpacity
-                style={{
-                  backgroundColor: theme.accent,
-                  padding: 15,
-                  borderRadius: 15,
-                  marginBottom: 20,
-                }}
-                onPress={handleLogin}
-              >
-                <Text style={{ fontFamily: 'PoppinsSemiBold', color: theme.primary, textAlign: 'center', fontSize: 18, fontWeight: 'bold' }}>
-                  Log In
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={{ marginBottom: 20 }}
-              onPress={() => router.push('../Screens/ForgotPassword')}
-              >
-                <Text style={{ fontFamily: 'PoppinsSemiBold', color: theme.accent, textAlign: 'center', fontSize: 14 }}>Forgot Password?</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={{
-                  backgroundColor: theme.primary,
-                  padding: 15,
-                  borderRadius: 15,
-                  marginBottom: 30,
-                }}
-                onPress={() => router.push('../Screens/Signup')}
-              >
-                <Text style={{ fontFamily: 'PoppinsSemiBold', color: theme.text, textAlign: 'center', fontSize: 18, fontWeight: 'bold' }}>
-                  Sign Up New Account
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Animated.View>
+        {Platform.OS === 'ios' ? (
+          <Animated.View
+            style={{
+              flex: 1,
+              transform: [{ translateY: keyboardOffset }],
+            }}
+          >
+            {renderContent()}
+          </Animated.View>
+        ) : (
+          <KeyboardAvoidingView
+            behavior="padding"
+            className="flex-1 mt-16"
+          >
+            {renderContent()}
+          </KeyboardAvoidingView>
+        )}
       </SafeAreaView>
     </>
   );
