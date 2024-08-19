@@ -1,8 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
-import React, { useState, memo, useEffect } from 'react';
+import React, { useState, memo } from 'react';
 import {
-  Animated,
   View,
   Text,
   TouchableOpacity,
@@ -22,7 +21,6 @@ interface Balance {
 const SettleUp: React.FC = memo(() => {
   const theme = useTheme();
   const router = useRouter();
-  const [animation] = useState(new Animated.Value(0));
   const [selectedGroup, setSelectedGroup] = useState('');
   const [selectedBalances, setSelectedBalances] = useState<string[]>([]);
 
@@ -41,25 +39,6 @@ const SettleUp: React.FC = memo(() => {
     { id: '3', text: 'Alex should pay you $22.50' },
   ];
 
-  useEffect(() => {
-    Animated.timing(animation, {
-      toValue: 1,
-      duration: 900,
-      useNativeDriver: true,
-    }).start();
-  }, []);
-
-  const backgroundStyle = {
-    transform: [
-      {
-        translateY: animation.interpolate({
-          inputRange: [0, 1],
-          outputRange: [1000, 0],
-        }),
-      },
-    ],
-  };
-
   const toggleBalanceSelection = (id: string) => {
     setSelectedBalances(prev => 
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
@@ -68,16 +47,10 @@ const SettleUp: React.FC = memo(() => {
 
   const renderDropdown = (
     value: string,
-    setter: React.Dispatch<React.SetStateAction<string>>,
+    _setter: React.Dispatch<React.SetStateAction<string>>,
     placeholder: string
   ) => (
-    <Animated.View 
-      style={{ 
-        marginBottom: 20,
-        opacity: animation,
-        transform: [{ translateY: animation.interpolate({ inputRange: [0, 1], outputRange: [50, 0] }) }],
-      }}
-    >
+    <View style={{ marginBottom: 20 }}>
       <Text style={{ color: theme.text, marginBottom: 5, fontFamily: 'PoppinsSemiBold' }}>{placeholder}:</Text>
       <TouchableOpacity
         style={{
@@ -92,6 +65,8 @@ const SettleUp: React.FC = memo(() => {
           shadowOpacity: 0.1,
           shadowRadius: 4,
           elevation: 3,
+          borderWidth: 1,
+          borderColor: theme.accent,
         }}
         onPress={() => {/* Implement dropdown logic */}}
       >
@@ -100,106 +75,72 @@ const SettleUp: React.FC = memo(() => {
         </Text>
         <Ionicons name="chevron-down" size={24} color={theme.text} />
       </TouchableOpacity>
-    </Animated.View>
+    </View>
   );
 
   const renderBalanceSection = (title: string, balances: Balance[]) => (
-    <Animated.View 
-      style={{ 
-        marginBottom: 20,
-        opacity: animation,
-        transform: [{ translateY: animation.interpolate({ inputRange: [0, 1], outputRange: [50, 0] }) }],
-      }}
-    >
+    <View style={{ marginBottom: 20 }}>
       <Text style={{ color: theme.accent, fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>{title}</Text>
-      {balances.map((balance, index) => (
-        <Animated.View
+      {balances.map((balance) => (
+        <TouchableOpacity
           key={balance.id}
-          style={{
-            opacity: animation,
-            transform: [{ translateX: animation.interpolate({ inputRange: [0, 1], outputRange: [50, 0] }) }],
+          style={{ 
+            flexDirection: 'row', 
+            alignItems: 'center', 
+            marginBottom: 10,
+            backgroundColor: selectedBalances.includes(balance.id) ? theme.accent + '20' : 'transparent',
+            padding: 10,
+            borderRadius: 10,
           }}
+          onPress={() => toggleBalanceSelection(balance.id)}
         >
-          <TouchableOpacity
-            style={{ 
-              flexDirection: 'row', 
-              alignItems: 'center', 
-              marginBottom: 10,
-              backgroundColor: selectedBalances.includes(balance.id) ? theme.accent + '20' : 'transparent',
-              padding: 10,
-              borderRadius: 10,
-            }}
-            onPress={() => toggleBalanceSelection(balance.id)}
-          >
-            <Ionicons
-              name={selectedBalances.includes(balance.id) ? 'checkbox-outline' : 'square-outline'}
-              size={24}
-              color={theme.accent}
-              style={{ marginRight: 10 }}
-            />
-            <View>
-              <Text style={{ color: theme.text, fontSize: 16, fontFamily: 'PoppinsSemiBold' }}>
-                {balance.name}
-              </Text>
-              <Text style={{ color: theme.text, fontSize: 14 }}>
-                ${Math.abs(balance.amount).toFixed(2)}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        </Animated.View>
+          <Ionicons
+            name={selectedBalances.includes(balance.id) ? 'checkbox-outline' : 'square-outline'}
+            size={24}
+            color={theme.accent}
+            style={{ marginRight: 10 }}
+          />
+          <View>
+            <Text style={{ color: theme.text, fontSize: 16, fontFamily: 'PoppinsSemiBold' }}>
+              {balance.name}
+            </Text>
+            <Text style={{ color: theme.text, fontSize: 14 }}>
+              ${Math.abs(balance.amount).toFixed(2)}
+            </Text>
+          </View>
+        </TouchableOpacity>
       ))}
-    </Animated.View>
+    </View>
   );
 
   const renderSuggestedSettlements = () => (
-    <Animated.View 
-      style={{ 
-        marginBottom: 20,
-        opacity: animation,
-        transform: [{ translateY: animation.interpolate({ inputRange: [0, 1], outputRange: [50, 0] }) }],
-      }}
-    >
+    <View style={{ marginBottom: 20 }}>
       <Text style={{ color: theme.accent, fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>Suggested settlements:</Text>
-      {suggestedSettlements.map((item, index) => (
-        <Animated.View
-          key={item.id}
-          style={{
-            opacity: animation,
-            transform: [{ translateX: animation.interpolate({ inputRange: [0, 1], outputRange: [50, 0] }) }],
-          }}
-        >
-          <Text style={{ color: theme.text, fontSize: 16, marginBottom: 5 }}>{item.text}</Text>
-        </Animated.View>
+      {suggestedSettlements.map((item) => (
+        <Text key={item.id} style={{ color: theme.text, fontSize: 16, marginBottom: 5 }}>{item.text}</Text>
       ))}
-    </Animated.View>
+    </View>
   );
 
   const renderButton = (text: string, onPress: () => void) => (
-    <Animated.View
+    <TouchableOpacity
       style={{
-        opacity: animation,
-        transform: [{ translateY: animation.interpolate({ inputRange: [0, 1], outputRange: [50, 0] }) }],
+        backgroundColor: theme.accent,
+        padding: 15,
+        borderRadius: 15,
+        marginBottom: 20,
+        shadowColor: theme.text,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
       }}
+      onPress={onPress}
     >
-      <TouchableOpacity
-        style={{
-          backgroundColor: theme.accent,
-          padding: 15,
-          borderRadius: 15,
-          marginBottom: 20,
-          shadowColor: theme.text,
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-          elevation: 3,
-        }}
-        onPress={onPress}
-      >
-        <Text style={{ fontFamily: 'PoppinsSemiBold', color: theme.primary, textAlign: 'center', fontSize: 16 }}>
-          {text}
-        </Text>
-      </TouchableOpacity>
-    </Animated.View>
+      <Text style={{ fontFamily: 'PoppinsSemiBold', color: theme.primary, textAlign: 'center', fontSize: 16 }}>
+        {text}
+      </Text>
+    </TouchableOpacity>
   );
 
   const handleMarkAsSettled = () => {
@@ -246,12 +187,6 @@ const SettleUp: React.FC = memo(() => {
       />
       <StatusBar barStyle="light-content" backgroundColor={theme.secondary} />
       <SafeAreaView style={{ flex: 1, backgroundColor: theme.secondary }}>
-        <Animated.View
-          style={[
-            backgroundStyle,
-            { position: 'absolute', top: 0, left: 0, right: 0, height: '100%', backgroundColor: theme.secondary },
-          ]}
-        />
         {renderContent()}
       </SafeAreaView>
     </>

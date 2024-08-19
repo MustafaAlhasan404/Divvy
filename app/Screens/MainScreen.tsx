@@ -10,11 +10,11 @@ import {
     FlatList,
     TextStyle,
 } from 'react-native';
-import Animated, { 
-    FadeInRight, 
-    FadeInLeft, 
-    useSharedValue, 
-    useAnimatedStyle, 
+import Animated, {
+    FadeInRight,
+    FadeInLeft,
+    useSharedValue,
+    useAnimatedStyle,
     withTiming,
     interpolate,
     Extrapolate
@@ -102,7 +102,7 @@ const MainScreen: React.FC = memo(() => {
                 },
             ],
         };
-    });    
+    });
 
     const groups: Group[] = [
         { id: '1', name: 'Roommates', balance: 50, icon: 'home' },
@@ -150,7 +150,7 @@ const MainScreen: React.FC = memo(() => {
     );
 
     const renderHeader = () => (
-        <Animated.View style={[headerHeight, { justifyContent: 'flex-end', paddingBottom: 10, paddingLeft:12 }]}>
+        <Animated.View style={[headerHeight, { justifyContent: 'flex-end', paddingBottom: 10, paddingLeft: 12 }]}>
             <TypewriterText
                 text="Welcome back, User!"
                 style={{
@@ -203,11 +203,13 @@ const MainScreen: React.FC = memo(() => {
             <TouchableOpacity
                 className="bg-primary rounded-2xl p-4 mb-5"
                 style={{ backgroundColor: theme.primary }}
+                onPress={() => router.push('../Screens/CreateOrJoinGroup')}
             >
                 <Text className="text-center text-base font-semibold" style={{ color: theme.text }}>
                     Create or Join Group
                 </Text>
             </TouchableOpacity>
+
 
             <Text className="text-lg font-semibold mb-2" style={{ color: theme.accent }}>Recent Activity</Text>
             <FlatList
