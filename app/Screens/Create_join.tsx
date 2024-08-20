@@ -93,16 +93,13 @@ const Create_join: React.FC = memo(() => {
       style={{ flexGrow: 1 }} 
       contentContainerStyle={{ paddingHorizontal: 24, paddingTop: SCREEN_HEIGHT * 0.1, paddingBottom: 36 }}
     >
-      <View className="flex-1 mt-12">
+      <View className="flex-1 mt-16">
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
           <Text style={{ fontFamily: 'PoppinsSemiBold', color: theme.text, fontSize: 28, flex: 1 }}>
             Join or Create a Group
           </Text>
           <Ionicons name="people-circle-outline" size={70} color={theme.text} />
         </View>
-        <Text style={{ fontFamily: 'PoppinsRegular', color: theme.text, fontSize: 16, marginBottom: 20 }}>
-          Connect with friends or start your own group adventure!
-        </Text>
 
         <TouchableOpacity
           style={{

@@ -6,6 +6,7 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: 'black',
+        tabBarStyle: { display: 'none' },
       }}>
       <Tabs.Screen
         name="MainScreen"

@@ -17,7 +17,6 @@ import Animated, {
     useAnimatedStyle,
     withTiming,
     interpolate,
-    Extrapolate
 } from 'react-native-reanimated';
 
 import { useTheme } from '../../ThemeContext';
@@ -82,13 +81,6 @@ const MainScreen: React.FC = memo(() => {
     const theme = useTheme();
     const router = useRouter();
     const animation = useSharedValue(0);
-    const scrollY = useSharedValue(0);
-
-    const headerHeight = useAnimatedStyle(() => {
-        return {
-            height: interpolate(scrollY.value, [0, 120], [120, 60], Extrapolate.CLAMP),
-        };
-    });
 
     useEffect(() => {
         animation.value = withTiming(1, { duration: 900 });
@@ -149,24 +141,20 @@ const MainScreen: React.FC = memo(() => {
         </Animated.View>
     );
 
-    const renderHeader = () => (
-        <Animated.View style={[headerHeight, { justifyContent: 'flex-end', paddingLeft: 12 }]}>
-            <TypewriterText
-                text="Welcome back, User!"
-                style={{
-                    color: theme.text,
-                    fontSize: 26,
-                    fontWeight: 'bold',
-                    fontFamily: 'PoppinsSemiBold'
-                }}
-                className="text-2xl md:text-3xl font-bold"
-            />
-        </Animated.View>
-    );
-
     const renderContent = () => (
-        <View className="flex-1 px-4 py-6 md:px-6 md:py-10">
+        <View className="flex-1 px-4 py-6 md:px-6 md:py-10 mt-2">
             <View className="mb-5">
+                <TypewriterText
+                    text="Welcome back, User!"
+                    style={{
+                        color: theme.text,
+                        fontSize: 26,
+                        fontWeight: 'bold',
+                        fontFamily: 'PoppinsSemiBold',
+                        marginBottom: 10
+                    }}
+                    className="text-2xl md:text-3xl font-bold"
+                />
                 <Text className="text-lg font-semibold mb-2" style={{ color: theme.accent }}>Overall Balance</Text>
                 <Text className="text-2xl font-bold" style={{ color: theme.positive }}>$20 you are owed</Text>
             </View>
@@ -210,7 +198,6 @@ const MainScreen: React.FC = memo(() => {
                 </Text>
             </TouchableOpacity>
 
-
             <Text className="text-lg font-semibold mb-2" style={{ color: theme.accent }}>Recent Activity</Text>
             <FlatList
                 data={recentActivity}
@@ -236,7 +223,6 @@ const MainScreen: React.FC = memo(() => {
                     data={[{ key: 'content' }]}
                     renderItem={renderContent}
                     keyExtractor={item => item.key}
-                    ListHeaderComponent={renderHeader}
                 />
             </SafeAreaView>
         </>
