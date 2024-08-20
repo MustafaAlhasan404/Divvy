@@ -21,7 +21,7 @@ import { useTheme } from '../../ThemeContext';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const CreateOrJoinGroup: React.FC = memo(() => {
+const Create_join: React.FC = memo(() => {
   const theme = useTheme();
   const router = useRouter();
   const [animation] = useState(new Animated.Value(0));
@@ -227,4 +227,4 @@ const CreateOrJoinGroup: React.FC = memo(() => {
   );
 });
 
-export default CreateOrJoinGroup;
+export default Create_join;

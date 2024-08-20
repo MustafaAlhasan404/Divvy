@@ -150,7 +150,7 @@ const MainScreen: React.FC = memo(() => {
     );
 
     const renderHeader = () => (
-        <Animated.View style={[headerHeight, { justifyContent: 'flex-end', paddingBottom: 10, paddingLeft: 12 }]}>
+        <Animated.View style={[headerHeight, { justifyContent: 'flex-end', paddingLeft: 12 }]}>
             <TypewriterText
                 text="Welcome back, User!"
                 style={{
@@ -203,7 +203,7 @@ const MainScreen: React.FC = memo(() => {
             <TouchableOpacity
                 className="bg-primary rounded-2xl p-4 mb-5"
                 style={{ backgroundColor: theme.primary }}
-                onPress={() => router.push('../Screens/CreateOrJoinGroup')}
+                onPress={() => router.push('../Screens/Create_join')}
             >
                 <Text className="text-center text-base font-semibold" style={{ color: theme.text }}>
                     Create or Join Group

@@ -116,7 +116,7 @@ const Login: React.FC = memo(() => {
   };
 
   const handleLogin = () => {
-    // Implement login functionality
+    router.push('../(tabs)/MainScreen')
   };
 
   const renderContent = () => (
