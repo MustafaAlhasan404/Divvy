@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
-import React, { useState, memo, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Animated,
   View,
@@ -12,8 +12,8 @@ import {
   Keyboard,
   Platform,
   KeyboardEvent,
-  TextStyle,
   KeyboardAvoidingView,
+  TextStyle,
 } from 'react-native';
 
 import { useTheme } from '../../ThemeContext';
@@ -54,11 +54,12 @@ const TypewriterText: React.FC<{ text: string; delay?: number; style?: TextStyle
   );
 };
 
-const Login: React.FC = memo(() => {
+const Login: React.FC = () => {
   const theme = useTheme();
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
   const router = useRouter();
   const [animation] = useState(new Animated.Value(0));
   const [keyboardOffset] = useState(new Animated.Value(0));
@@ -71,14 +72,8 @@ const Login: React.FC = memo(() => {
     }).start();
 
     if (Platform.OS === 'ios') {
-      const keyboardWillShowListener = Keyboard.addListener(
-        'keyboardWillShow',
-        keyboardWillShow
-      );
-      const keyboardWillHideListener = Keyboard.addListener(
-        'keyboardWillHide',
-        keyboardWillHide
-      );
+      const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', keyboardWillShow);
+      const keyboardWillHideListener = Keyboard.addListener('keyboardWillHide', keyboardWillHide);
 
       return () => {
         keyboardWillShowListener.remove();
@@ -116,7 +111,12 @@ const Login: React.FC = memo(() => {
   };
 
   const handleLogin = () => {
-    router.push('../(tabs)/MainScreen')
+    setLoading(true);
+    // Simulate login process
+    setTimeout(() => {
+      setLoading(false);
+      router.push('../(tabs)/MainScreen');
+    }, 1000);
   };
 
   const renderContent = () => (
@@ -130,7 +130,7 @@ const Login: React.FC = memo(() => {
             fontWeight: 'bold',
             marginBottom: 30,
             textAlign: 'center',
-            fontFamily: 'PoppinsSemiBold'
+            fontFamily: 'PoppinsSemiBold',
           }}
         />
         <View style={{ marginBottom: 20 }}>
@@ -150,6 +150,8 @@ const Login: React.FC = memo(() => {
             placeholder="Username Or Email"
             placeholderTextColor="#6B7280"
             keyboardAppearance="dark"
+            accessibilityLabel="Email or Username Input"
+            accessibilityRole="text"
           />
         </View>
         <View style={{ marginBottom: 20 }}>
@@ -170,10 +172,14 @@ const Login: React.FC = memo(() => {
               placeholder="Password"
               placeholderTextColor="#6B7280"
               keyboardAppearance="dark"
+              accessibilityLabel="Password Input"
+              accessibilityRole="text"
             />
             <TouchableOpacity
               onPress={() => setShowPassword(!showPassword)}
               style={{ position: 'absolute', right: 15, top: 15 }}
+              accessibilityLabel={showPassword ? 'Hide Password' : 'Show Password'}
+              accessibilityRole="button"
             >
               <Ionicons
                 name={showPassword ? 'eye-outline' : 'eye-off-outline'}
@@ -191,13 +197,19 @@ const Login: React.FC = memo(() => {
             marginBottom: 20,
           }}
           onPress={handleLogin}
+          disabled={loading}
+          accessibilityLabel="Log In"
+          accessibilityRole="button"
         >
           <Text style={{ fontFamily: 'PoppinsSemiBold', color: theme.primary, textAlign: 'center', fontSize: 18, fontWeight: 'bold' }}>
-            Log In
+            {loading ? 'Logging In...' : 'Log In'}
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity style={{ marginBottom: 20 }}
-        onPress={() => router.push('../Screens/ForgotPassword')}
+        <TouchableOpacity
+          style={{ marginBottom: 20 }}
+          onPress={() => router.push('../Screens/ForgotPassword')}
+          accessibilityLabel="Forgot Password"
+          accessibilityRole="link"
         >
           <Text style={{ fontFamily: 'PoppinsSemiBold', color: theme.accent, textAlign: 'center', fontSize: 14 }}>Forgot Password?</Text>
         </TouchableOpacity>
@@ -209,6 +221,8 @@ const Login: React.FC = memo(() => {
             marginBottom: 30,
           }}
           onPress={() => router.push('../Screens/Signup')}
+          accessibilityLabel="Sign Up New Account"
+          accessibilityRole="button"
         >
           <Text style={{ fontFamily: 'PoppinsSemiBold', color: theme.text, textAlign: 'center', fontSize: 18, fontWeight: 'bold' }}>
             Sign Up New Account
@@ -250,6 +264,6 @@ const Login: React.FC = memo(() => {
       </SafeAreaView>
     </>
   );
-});
+};
 
 export default Login;

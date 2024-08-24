@@ -51,11 +51,11 @@ const SettleUp: React.FC = memo(() => {
     placeholder: string
   ) => (
     <View style={{ marginBottom: 20 }}>
-      <Text style={{ color: theme.text, marginBottom: 5, fontFamily: 'PoppinsSemiBold' }}>{placeholder}:</Text>
+      <Text style={{ color: theme.text, marginBottom: 5, fontFamily: 'PoppinsSemiBold', fontSize: 16 }}>{placeholder}:</Text>
       <TouchableOpacity
         style={{
           backgroundColor: theme.primary,
-          borderRadius: 15,
+          borderRadius: 10,
           padding: 15,
           flexDirection: 'row',
           justifyContent: 'space-between',
@@ -80,7 +80,7 @@ const SettleUp: React.FC = memo(() => {
 
   const renderBalanceSection = (title: string, balances: Balance[]) => (
     <View style={{ marginBottom: 20 }}>
-      <Text style={{ color: theme.accent, fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>{title}</Text>
+      <Text style={{ color: theme.accent, fontSize: 18, fontFamily: 'PoppinsSemiBold', marginBottom: 10 }}>{title}</Text>
       {balances.map((balance) => (
         <TouchableOpacity
           key={balance.id}
@@ -115,7 +115,7 @@ const SettleUp: React.FC = memo(() => {
 
   const renderSuggestedSettlements = () => (
     <View style={{ marginBottom: 20 }}>
-      <Text style={{ color: theme.accent, fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>Suggested settlements:</Text>
+      <Text style={{ color: theme.accent, fontSize: 18, fontFamily: 'PoppinsSemiBold', marginBottom: 10 }}>Suggested settlements:</Text>
       {suggestedSettlements.map((item) => (
         <Text key={item.id} style={{ color: theme.text, fontSize: 16, marginBottom: 5 }}>{item.text}</Text>
       ))}
@@ -127,7 +127,7 @@ const SettleUp: React.FC = memo(() => {
       style={{
         backgroundColor: theme.accent,
         padding: 15,
-        borderRadius: 15,
+        borderRadius: 10,
         marginBottom: 20,
         shadowColor: theme.text,
         shadowOffset: { width: 0, height: 2 },
@@ -153,8 +153,8 @@ const SettleUp: React.FC = memo(() => {
   };
 
   const renderContent = () => (
-    <ScrollView style={{ flexGrow: 1 }} className="px-4 py-6 md:px-6 md:py-10">
-      <View className="flex-1">
+    <ScrollView style={{ flexGrow: 1, padding: 20 }}>
+      <View style={{ flex: 1 }}>
         {renderDropdown(selectedGroup, setSelectedGroup, 'Choose Group')}
         {renderBalanceSection('You owe:', youOwe)}
         {renderBalanceSection('You are owed:', youAreOwed)}

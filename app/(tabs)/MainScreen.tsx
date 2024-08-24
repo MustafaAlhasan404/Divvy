@@ -7,7 +7,6 @@ import {
     TouchableOpacity,
     SafeAreaView,
     StatusBar,
-    FlatList,
     TextStyle,
 } from 'react-native';
 import Animated, {
@@ -28,7 +27,7 @@ interface TypewriterTextProps {
     className?: string;
 }
 
-const TypewriterText: React.FC<TypewriterTextProps> = ({ text, delay = 100, style, className }) => {
+const TypewriterText: React.FC<TypewriterTextProps> = memo(({ text, delay = 100, style, className }) => {
     const [displayedText, setDisplayedText] = useState('');
     const [showCursor, setShowCursor] = useState(true);
     const [isTypingComplete, setIsTypingComplete] = useState(false);
@@ -62,7 +61,7 @@ const TypewriterText: React.FC<TypewriterTextProps> = ({ text, delay = 100, styl
             {!isTypingComplete && <Text style={{ opacity: showCursor ? 1 : 0 }}>|</Text>}
         </Text>
     );
-};
+});
 
 interface Group {
     id: string;
@@ -86,15 +85,13 @@ const MainScreen: React.FC = memo(() => {
         animation.value = withTiming(1, { duration: 900 });
     }, []);
 
-    const backgroundStyle = useAnimatedStyle(() => {
-        return {
-            transform: [
-                {
-                    translateY: interpolate(animation.value, [0, 1], [-1000, 0]),
-                },
-            ],
-        };
-    });
+    const backgroundStyle = useAnimatedStyle(() => ({
+        transform: [
+            {
+                translateY: interpolate(animation.value, [0, 1], [-1000, 0]),
+            },
+        ],
+    }));
 
     const groups: Group[] = [
         { id: '1', name: 'Roommates', balance: 50, icon: 'home' },
@@ -114,8 +111,9 @@ const MainScreen: React.FC = memo(() => {
         return theme.neutral;
     };
 
-    const renderGroupItem = ({ item, index }: { item: Group; index: number }) => (
+    const renderGroupItem = (item: Group, index: number) => (
         <Animated.View
+            key={item.id}
             entering={FadeInRight.delay(index * 100)}
             className="bg-primary rounded-2xl p-4 mb-2 flex-row items-center"
             style={{ backgroundColor: theme.primary }}
@@ -130,81 +128,16 @@ const MainScreen: React.FC = memo(() => {
         </Animated.View>
     );
 
-    const renderActivityItem = ({ item, index }: { item: Activity; index: number }) => (
+    const renderActivityItem = (item: Activity, index: number) => (
         <Animated.View
+            key={item.id}
             entering={FadeInLeft.delay(index * 100)}
             className="mb-2 flex-row items-center"
-            style={{ backgroundColor: theme.recentActivity, borderRadius: 10, padding: 10 }}
+            style={{ backgroundColor: theme.primary, borderRadius: 10, padding: 10 }}
         >
             <Ionicons name={item.icon as any} size={20} color={theme.accent} style={{ marginRight: 10 }} />
             <Text className="text-sm" style={{ color: theme.text }}>{item.description}</Text>
         </Animated.View>
-    );
-
-    const renderContent = () => (
-        <View className="flex-1 px-4 py-6 md:px-6 md:py-10 mt-2">
-            <View className="mb-5">
-                <TypewriterText
-                    text="Welcome back, User!"
-                    style={{
-                        color: theme.text,
-                        fontSize: 26,
-                        fontWeight: 'bold',
-                        fontFamily: 'PoppinsSemiBold',
-                        marginBottom: 10
-                    }}
-                    className="text-2xl md:text-3xl font-bold"
-                />
-                <Text className="text-lg font-semibold mb-2" style={{ color: theme.accent }}>Overall Balance</Text>
-                <Text className="text-2xl font-bold" style={{ color: theme.positive }}>$20 you are owed</Text>
-            </View>
-
-            <View className="flex-row justify-between mb-5">
-                <TouchableOpacity
-                    className="bg-accent rounded-2xl flex-1 mr-2 p-4"
-                    style={{ backgroundColor: theme.accent }}
-                    onPress={() => router.push('../Screens/Expenses')}
-                >
-                    <Text className="text-center text-base font-semibold" style={{ color: theme.primary }}>
-                        Add Expense
-                    </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    className="bg-primary rounded-2xl flex-1 ml-2 p-4"
-                    style={{ backgroundColor: theme.primary }}
-                    onPress={() => router.push('../Screens/SettleUp')}
-                >
-                    <Text className="text-center text-base font-semibold" style={{ color: theme.text }}>
-                        Settle Up
-                    </Text>
-                </TouchableOpacity>
-            </View>
-
-            <Text className="text-lg font-semibold mb-2" style={{ color: theme.accent }}>Your Groups</Text>
-            <FlatList
-                data={groups}
-                renderItem={renderGroupItem}
-                keyExtractor={item => item.id}
-                className="mb-5"
-            />
-
-            <TouchableOpacity
-                className="bg-primary rounded-2xl p-4 mb-5"
-                style={{ backgroundColor: theme.primary }}
-                onPress={() => router.push('../Screens/Create_join')}
-            >
-                <Text className="text-center text-base font-semibold" style={{ color: theme.text }}>
-                    Create or Join Group
-                </Text>
-            </TouchableOpacity>
-
-            <Text className="text-lg font-semibold mb-2" style={{ color: theme.accent }}>Recent Activity</Text>
-            <FlatList
-                data={recentActivity}
-                renderItem={renderActivityItem}
-                keyExtractor={item => item.id}
-            />
-        </View>
     );
 
     return (
@@ -215,15 +148,67 @@ const MainScreen: React.FC = memo(() => {
                 <Animated.View
                     style={[
                         backgroundStyle,
-                        { position: 'absolute', top: -50, left: 0, right: 0, height: '125%', backgroundColor: theme.secondary },
+                        { position: 'absolute', top: -50, left: 0, right: 0, height: '125%', backgroundColor: theme.background },
                     ]}
                     className="rounded-b-[50px] md:rounded-b-[80px]"
                 />
-                <FlatList
-                    data={[{ key: 'content' }]}
-                    renderItem={renderContent}
-                    keyExtractor={item => item.key}
-                />
+                <View className="flex-1 px-4 py-6 md:px-6 md:py-10 mt-2">
+                    <View className="mb-5">
+                        <TypewriterText
+                            text="Welcome back, User!"
+                            style={{
+                                color: theme.text,
+                                fontSize: 26,
+                                fontWeight: 'bold',
+                                fontFamily: 'PoppinsSemiBold',
+                                marginBottom: 10
+                            }}
+                            className="text-2xl md:text-3xl font-bold"
+                        />
+                        <Text className="text-2xl font-bold" style={{ color: theme.accent }}>$20 you are owed</Text>
+                    </View>
+
+                    <View className="flex-row justify-between mb-5">
+                        <TouchableOpacity
+                            className="bg-accent rounded-2xl flex-1 mr-2 p-4"
+                            style={{ backgroundColor: theme.accent }}
+                            onPress={() => router.push('../Screens/Expenses')}
+                        >
+                            <Text className="text-center text-base font-semibold" style={{ color: theme.primary }}>
+                                Add Expense
+                            </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            className="bg-primary rounded-2xl flex-1 ml-2 p-4"
+                            style={{ backgroundColor: theme.primary }}
+                            onPress={() => router.push('../Screens/SettleUp')}
+                        >
+                            <Text className="text-center text-base font-semibold" style={{ color: theme.text }}>
+                                Settle Up
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <Text className="text-lg font-semibold mb-2" style={{ color: theme.accent }}>Your Groups</Text>
+                    <View className="mb-5">
+                        {groups.map((group, index) => renderGroupItem(group, index))}
+                    </View>
+
+                    <TouchableOpacity
+                        className="bg-primary rounded-2xl p-4 mb-5"
+                        style={{ backgroundColor: theme.primary }}
+                        onPress={() => router.push('../Screens/Create_join')}
+                    >
+                        <Text className="text-center text-base font-semibold" style={{ color: theme.text }}>
+                            Create or Join Group
+                        </Text>
+                    </TouchableOpacity>
+
+                    <Text className="text-lg font-semibold mb-2" style={{ color: theme.accent }}>Recent Activity</Text>
+                    <View>
+                        {recentActivity.map((activity, index) => renderActivityItem(activity, index))}
+                    </View>
+                </View>
             </SafeAreaView>
         </>
     );

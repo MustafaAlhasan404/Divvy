@@ -82,7 +82,7 @@ const CodeInput: React.FC<{ code: string; setCode: (code: string) => void; theme
                     ref={(ref) => (inputRefs.current[index] = ref)}
                     className="w-16 h-16 bg-primary text-text rounded-xl text-2xl text-center mx-5"
                     style={{
-                        color: theme.text,
+                        color: theme.accent,
                         backgroundColor: theme.primary,
                         fontFamily,
                     }}
