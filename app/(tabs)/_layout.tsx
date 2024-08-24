@@ -9,24 +9,21 @@ import { useTheme } from '../../ThemeContext';
 type IconName = keyof typeof Ionicons.glyphMap;
 
 const ICON_MAP: Record<string, IconName> = {
-  MainScreen: 'home',
-  Search: 'search',
-  Exchange: 'swap-horizontal',
-  Layers: 'layers',
-  Profile: 'person',
+  MainScreen: 'home-outline',
+  AllGroups: 'people-outline',
+  Profile: 'person-outline',
 };
 
-const getIconName = (routeName: string): IconName => ICON_MAP[routeName] || 'home';
+const getIconName = (routeName: string): IconName => ICON_MAP[routeName] || 'home-outline';
 
 interface TabBarButtonProps {
   route: { key: string; name: string };
   isFocused: boolean;
-  index: number;
   navigation: BottomTabBarProps['navigation'];
   theme: ReturnType<typeof useTheme>;
 }
 
-const TabBarButton: React.FC<TabBarButtonProps> = ({ route, isFocused, index, navigation, theme }) => {
+const TabBarButton: React.FC<TabBarButtonProps> = ({ route, isFocused, navigation, theme }) => {
   const onPress = () => {
     const event = navigation.emit({
       type: 'tabPress',
@@ -43,7 +40,7 @@ const TabBarButton: React.FC<TabBarButtonProps> = ({ route, isFocused, index, na
     <TouchableOpacity onPress={onPress}>
       <Ionicons
         name={getIconName(route.name)}
-        size={index === 2 ? 30 : 26}
+        size={28}
         color={isFocused ? theme.accent : theme.text}
       />
     </TouchableOpacity>
@@ -55,13 +52,12 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
 
   return (
     <View className="absolute bottom-0 left-0 right-0 h-24 items-center justify-center">
-      <View style={{backgroundColor: theme.secondary}} className={`flex-row justify-around items-center rounded-full w-full h-32 pb-8 `}>
+      <View style={{backgroundColor: theme.secondary}} className="flex-row justify-around items-center rounded-full w-full h-32 pb-8">
         {state.routes.map((route, index) => (
           <TabBarButton
             key={route.key}
             route={route}
             isFocused={state.index === index}
-            index={index}
             navigation={navigation}
             theme={theme}
           />
@@ -95,6 +91,20 @@ export default function TabLayout() {
         options={{
           title: 'Main',
           headerShown: true,
+        }}
+      />
+      <Tabs.Screen
+        name="AllGroups"
+        options={{
+          title: 'Groups',
+          headerShown: false,
+        }}
+      />
+      <Tabs.Screen
+        name="Profile"
+        options={{
+          title: 'Profile',
+          headerShown: false,
         }}
       />
     </Tabs>
