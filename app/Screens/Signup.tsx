@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
 import * as Firebase from 'firebase/auth';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import React, { useState, memo, useEffect, useRef } from 'react';
 import {
   Animated,
@@ -19,6 +20,8 @@ import {
 } from 'react-native';
 
 import { useTheme } from '../../ThemeContext';
+import { db } from '../../firebaseConfig';
+
 
 const commonTextStyle: TextStyle = {
   fontFamily: 'PoppinsSemiBold',
@@ -84,14 +87,8 @@ const Signup: React.FC = memo(() => {
     }).start();
 
     if (Platform.OS === 'ios') {
-      const keyboardWillShowListener = Keyboard.addListener(
-        'keyboardWillShow',
-        keyboardWillShow
-      );
-      const keyboardWillHideListener = Keyboard.addListener(
-        'keyboardWillHide',
-        keyboardWillHide
-      );
+      const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', keyboardWillShow);
+      const keyboardWillHideListener = Keyboard.addListener('keyboardWillHide', keyboardWillHide);
 
       return () => {
         keyboardWillShowListener.remove();
@@ -141,6 +138,16 @@ const Signup: React.FC = memo(() => {
       await Firebase.updateProfile(userCredential.user, {
         displayName: fullName
       });
+
+      const userDocRef = doc(db, 'Users', userCredential.user.uid);
+      await setDoc(userDocRef, {
+        fullName,
+        email,
+        mobileNumber,
+        dateOfBirth,
+        createdAt: serverTimestamp(),
+      });
+
       router.push('../(tabs)/MainScreen');
     } catch (error) {
       console.error(error);
