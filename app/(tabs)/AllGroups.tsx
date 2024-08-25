@@ -46,7 +46,7 @@ const AllGroupsScreen: React.FC = memo(() => {
   const backgroundStyle = useAnimatedStyle(() => ({
     transform: [
       {
-        translateY: interpolate(animation.value, [0, 1], [-1000, 0]),
+        translateY: interpolate(animation.value, [0, 1], [1000, 0]),
       },
     ],
   }));

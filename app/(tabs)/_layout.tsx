@@ -11,6 +11,8 @@ type IconName = keyof typeof Ionicons.glyphMap;
 const ICON_MAP: Record<string, IconName> = {
   MainScreen: 'home-outline',
   AllGroups: 'people-outline',
+  Activities: 'list-outline',
+  Analytics: 'bar-chart-outline',
   Profile: 'person-outline',
 };
 
@@ -51,8 +53,8 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
   const theme = useTheme();
 
   return (
-    <View className="absolute bottom-0 left-0 right-0 h-24 items-center justify-center">
-      <View style={{backgroundColor: theme.secondary}} className="flex-row justify-around items-center rounded-full w-full h-32 pb-8">
+    <View className="absolute bottom-0 left-0 right-0 h-20 items-center justify-center">
+      <View style={{backgroundColor: theme.secondary}} className="flex-row justify-around items-center rounded-full w-full h-28 pb-6">
         {state.routes.map((route, index) => (
           <TabBarButton
             key={route.key}
@@ -97,6 +99,13 @@ export default function TabLayout() {
         name="AllGroups"
         options={{
           title: 'Groups',
+          headerShown: false,
+        }}
+      />
+      <Tabs.Screen
+        name="Activities"
+        options={{
+          title: 'Activities',
           headerShown: false,
         }}
       />

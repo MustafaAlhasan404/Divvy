@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
+import * as Firebase from 'firebase/auth';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Animated,
@@ -14,6 +15,7 @@ import {
   KeyboardEvent,
   KeyboardAvoidingView,
   TextStyle,
+  Alert,
 } from 'react-native';
 
 import { useTheme } from '../../ThemeContext';
@@ -110,13 +112,18 @@ const Login: React.FC = () => {
     ],
   };
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setLoading(true);
-    // Simulate login process
-    setTimeout(() => {
-      setLoading(false);
+    try {
+      const auth = Firebase.getAuth();
+      await Firebase.signInWithEmailAndPassword(auth, email, password);
       router.push('../(tabs)/MainScreen');
-    }, 1000);
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Login Error', 'Invalid email or password. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const renderContent = () => (

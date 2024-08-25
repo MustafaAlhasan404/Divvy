@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
+import * as Firebase from 'firebase/auth';
 import React, { useState, memo, useEffect, useRef } from 'react';
 import {
   Animated,
@@ -14,6 +15,7 @@ import {
   KeyboardEvent,
   TextStyle,
   KeyboardAvoidingView,
+  Alert,
 } from 'react-native';
 
 import { useTheme } from '../../ThemeContext';
@@ -68,6 +70,7 @@ const Signup: React.FC = memo(() => {
   const [confirmPassword, setConfirmPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
   const router = useRouter();
   const [animation] = useState(new Animated.Value(0));
   const [keyboardOffset] = useState(new Animated.Value(0));
@@ -125,8 +128,26 @@ const Signup: React.FC = memo(() => {
     ],
   };
 
-  const handleSignup = () => {
-    // Implement signup functionality
+  const handleSignup = async () => {
+    if (password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const auth = Firebase.getAuth();
+      const userCredential = await Firebase.createUserWithEmailAndPassword(auth, email, password);
+      await Firebase.updateProfile(userCredential.user, {
+        displayName: fullName
+      });
+      router.push('../(tabs)/MainScreen');
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Signup Error', 'An error occurred during signup. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const renderInput = (
@@ -230,9 +251,10 @@ const Signup: React.FC = memo(() => {
           <TouchableOpacity
             style={{ backgroundColor: theme.accent, padding: 15, borderRadius: 15 }}
             onPress={handleNext}
+            disabled={loading}
           >
             <Text style={[commonTextStyle, { color: theme.primary, textAlign: 'center', fontSize: 18, fontWeight: 'bold' }]}>
-              {stage === 3 ? 'Sign Up' : 'Next'}
+              {stage === 3 ? (loading ? 'Signing Up...' : 'Sign Up') : 'Next'}
             </Text>
           </TouchableOpacity>
         </View>

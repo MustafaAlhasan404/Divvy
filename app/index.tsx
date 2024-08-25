@@ -3,6 +3,8 @@ import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect, useState, memo } from 'react';
 
+import { app } from '../firebaseConfig';
+
 import { Container } from '~/components/Container';
 
 SplashScreen.preventAutoHideAsync();
@@ -15,7 +17,7 @@ const Home = memo(() => {
     await Font.loadAsync({
       PoppinsSemiBold: require('~/assets/fonts/PoppinsSemiBold.ttf'),
       PoppinsSemiBoldItalic: require('~/assets/fonts/PoppinsSemiBoldItalic.ttf'),
-      Montserrat:require ("~/assets/fonts/Montserrat.ttf"),
+      Montserrat: require("~/assets/fonts/Montserrat.ttf"),
     });
     setFontsLoaded(true);
     SplashScreen.hideAsync();
@@ -23,6 +25,8 @@ const Home = memo(() => {
   
   useEffect(() => {
     loadFonts();
+    // Firebase is now initialized here
+    console.log('Firebase initialized:', app);
   }, []);  
 
   useEffect(() => {
@@ -33,7 +37,8 @@ const Home = memo(() => {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Divvy.inc', headerShown: false }} />
+      <Stack.Screen options={{ title: 'Divvy.inc',
+         headerShown: false }} />
       <Container children={undefined} />
     </>
   );

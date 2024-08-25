@@ -35,7 +35,7 @@ const ProfileSettings: React.FC = () => {
   }, []);
 
   const backgroundStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: interpolate(animation.value, [0, 1], [-1000, 0]) }],
+    transform: [{ translateY: interpolate(animation.value, [0, 1], [1000, 0]) }],
   }));
 
   const textStyle = { fontFamily: 'PoppinsSemiBold' };
@@ -71,7 +71,7 @@ const ProfileSettings: React.FC = () => {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.primary }}>
       <StatusBar barStyle="light-content" backgroundColor={theme.primary} />
       <Stack.Screen 
         options={{
@@ -96,9 +96,9 @@ const ProfileSettings: React.FC = () => {
           backgroundStyle,
           { position: 'absolute', top: -50, left: 0, right: 0, height: '125%', backgroundColor: theme.background },
         ]}
-        className="rounded-b-[40px] md:rounded-b-[60px]"
+        className="rounded-b-[50px] md:rounded-b-[80px]"
       />
-      <ScrollView className="flex-1 px-3 py-16 md:px-4 md:py-8">
+      <ScrollView className="flex-1 px-4 py-20 md:px-6 md:py-10">
         {renderSection("Profile Information", (
           <>
             {renderProfileInfo("person", name)}

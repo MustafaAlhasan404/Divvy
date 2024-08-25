@@ -19,6 +19,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { useTheme } from '../../ThemeContext';
+import { auth } from '../../firebaseConfig';
 
 interface TypewriterTextProps {
     text: string;
@@ -80,9 +81,14 @@ const MainScreen: React.FC = memo(() => {
     const theme = useTheme();
     const router = useRouter();
     const animation = useSharedValue(0);
+    const [userName, setUserName] = useState<string>('User');
 
     useEffect(() => {
         animation.value = withTiming(1, { duration: 900 });
+        const user = auth.currentUser;
+        if (user) {
+            setUserName(user.displayName || 'User');
+        }
     }, []);
 
     const backgroundStyle = useAnimatedStyle(() => ({
@@ -155,7 +161,7 @@ const MainScreen: React.FC = memo(() => {
                 <View className="flex-1 px-4 py-6 md:px-6 md:py-10 mt-2">
                     <View className="mb-5">
                         <TypewriterText
-                            text="Welcome back, User!"
+                            text={`Welcome back, ${userName}!`}
                             style={{
                                 color: theme.text,
                                 fontSize: 26,
