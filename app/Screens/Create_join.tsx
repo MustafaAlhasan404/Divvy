@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import React, { useState, memo, useEffect } from 'react';
 import {
   Animated,
@@ -18,6 +19,8 @@ import {
 } from 'react-native';
 
 import { useTheme } from '../../ThemeContext';
+import { db , auth } from '../../firebaseConfig';
+import { updateGroup, Group } from '../../firestore';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -84,8 +87,45 @@ const Create_join: React.FC = memo(() => {
     router.push('../Screens/CreateNewGroup');
   };
 
-  const handleJoinGroup = () => {
-    console.log('Joining group with code:', groupCode);
+  const handleJoinGroup = async () => {
+    if (!groupCode) {
+      alert('Please enter a group code');
+      return;
+    }
+
+    const currentUserId = auth.currentUser?.uid;
+    if (!currentUserId) {
+      alert('You must be logged in to join a group');
+      return;
+    }
+
+    try {
+      const groupsQuery = query(collection(db, 'Groups'), where('code', '==', groupCode));
+      const querySnapshot = await getDocs(groupsQuery);
+
+      if (querySnapshot.empty) {
+        alert('No group found with this code');
+        return;
+      }
+
+      const groupDoc = querySnapshot.docs[0];
+      const group = { id: groupDoc.id, ...groupDoc.data() } as Group;
+
+      if (group.members.includes(currentUserId)) {
+        alert('You are already a member of this group');
+        return;
+      }
+
+      await updateGroup(group.id, {
+        members: [...group.members, currentUserId]
+      });
+
+      alert('Successfully joined the group!');
+      router.push(`../(tabs)/MainScreen`);
+    } catch (error) {
+      console.error('Error joining group:', error);
+      alert('An error occurred while joining the group');
+    }
   };
 
   const renderContent = () => (
@@ -163,7 +203,7 @@ const Create_join: React.FC = memo(() => {
             shadowOpacity: 0.2,
             shadowRadius: 4,
           }}
-          onPress={handleJoinGroup}
+          onPress={() => handleJoinGroup().catch(console.error)}
         >
           <Text style={{ fontFamily: 'PoppinsSemiBold', color: theme.primary, textAlign: 'center', fontSize: 18 }}>
             Join Group

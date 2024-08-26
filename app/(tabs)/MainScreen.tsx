@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
+import { onSnapshot, query, collection, where, doc, DocumentSnapshot } from 'firebase/firestore';
 import React, { useState, memo, useEffect, useRef } from 'react';
 import {
     View,
@@ -8,6 +10,7 @@ import {
     SafeAreaView,
     StatusBar,
     TextStyle,
+    FlatList,
 } from 'react-native';
 import Animated, {
     FadeInRight,
@@ -19,7 +22,8 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { useTheme } from '../../ThemeContext';
-import { auth } from '../../firebaseConfig';
+import { auth, db } from '../../firebaseConfig';
+import { Group, Expense, getUserGroups, getGroupExpenses, getExpenseShares, getUser } from '../../firestore';
 
 interface TypewriterTextProps {
     text: string;
@@ -64,30 +68,80 @@ const TypewriterText: React.FC<TypewriterTextProps> = memo(({ text, delay = 100,
     );
 });
 
-interface Group {
-    id: string;
-    name: string;
-    balance: number;
-    icon: string;
-}
-
-interface Activity {
-    id: string;
-    description: string;
-    icon: string;
-}
-
 const MainScreen: React.FC = memo(() => {
     const theme = useTheme();
     const router = useRouter();
     const animation = useSharedValue(0);
     const [userName, setUserName] = useState<string>('User');
+    const [groups, setGroups] = useState<Group[]>([]);
+    const [recentActivity, setRecentActivity] = useState<Expense[]>([]);
+    const [isUserDataLoaded, setIsUserDataLoaded] = useState(false);
 
     useEffect(() => {
         animation.value = withTiming(1, { duration: 900 });
         const user = auth.currentUser;
         if (user) {
-            setUserName(user.displayName || 'User');
+            const userDocRef = doc(db, 'Users', user.uid);
+            const unsubscribeUser = onSnapshot(userDocRef, (docSnapshot: DocumentSnapshot) => {
+                if (docSnapshot.exists()) {
+                    const userData = docSnapshot.data();
+                    setUserName(userData?.fullName || 'User');
+                }
+                setIsUserDataLoaded(true);
+            });
+
+            const groupsQuery = query(collection(db, 'Groups'), where('members', 'array-contains', user.uid));
+            const unsubscribeGroups = onSnapshot(groupsQuery, async (snapshot) => {
+                const updatedGroups = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Group));
+                setGroups(updatedGroups);
+
+                let totalOwed = 0;
+                let maxGroupOwed = { amount: 0, groupName: '', personName: '' };
+
+                for (const group of updatedGroups) {
+                    const expenses = await getGroupExpenses(group.id);
+                    const shares = await Promise.all(expenses.map(expense => getExpenseShares(expense.id)));
+                    const flatShares = shares.flat();
+
+                    const groupBalances: { [userId: string]: number } = {};
+
+                    expenses.forEach(expense => {
+                        Object.entries(expense.paidBy).forEach(([userId, amount]) => {
+                            if (userId === user.uid) {
+                                // Current user paid, others owe them
+                                Object.keys(expense.paidBy).forEach(memberId => {
+                                    if (memberId !== user.uid) {
+                                        groupBalances[memberId] = (groupBalances[memberId] || 0) - amount / Object.keys(expense.paidBy).length;
+                                    }
+                                });
+                            } else {
+                                // Someone else paid, current user owes them
+                                groupBalances[userId] = (groupBalances[userId] || 0) + amount / Object.keys(expense.paidBy).length;
+                            }
+                        });
+                    });
+
+                    const groupOwed = Object.values(groupBalances).reduce((sum, amount) => sum + (amount > 0 ? amount : 0), 0);
+
+                    totalOwed += groupOwed;
+
+                    if (groupOwed > maxGroupOwed.amount) {
+                        const maxOwedUserId = Object.entries(groupBalances)
+                            .reduce((max, [userId, amount]) => amount > max[1] ? [userId, amount] : max, ['', 0])[0];
+                        const personData = await getUser(maxOwedUserId);
+                        maxGroupOwed = {
+                            amount: groupOwed,
+                            groupName: group.name,
+                            personName: personData?.fullName || 'Unknown'
+                        };
+                    }
+                }
+            });
+
+            return () => {
+                unsubscribeUser();
+                unsubscribeGroups();
+            };
         }
     }, []);
 
@@ -99,50 +153,30 @@ const MainScreen: React.FC = memo(() => {
         ],
     }));
 
-    const groups: Group[] = [
-        { id: '1', name: 'Roommates', balance: 50, icon: 'home' },
-        { id: '2', name: 'Trip to Paris', balance: -30, icon: 'airplane' },
-        { id: '3', name: 'Office Lunch', balance: 0, icon: 'restaurant' },
-    ];
-
-    const recentActivity: Activity[] = [
-        { id: '1', description: 'John added "Dinner" $30 to Roommates', icon: 'fast-food' },
-        { id: '2', description: 'You settled $20 with Sarah in Trip to Paris', icon: 'cash' },
-        { id: '3', description: 'Alex invited you to "Beach Trip"', icon: 'umbrella' },
-    ];
-
-    const getBalanceColor = (balance: number) => {
-        if (balance > 0) return theme.positive;
-        if (balance < 0) return theme.negative;
-        return theme.neutral;
-    };
-
-    const renderGroupItem = (item: Group, index: number) => (
+    const renderGroupItem = ({ item, index }: { item: Group; index: number }) => (
         <Animated.View
-            key={item.id}
             entering={FadeInRight.delay(index * 100)}
             className="bg-primary rounded-2xl p-4 mb-2 flex-row items-center"
             style={{ backgroundColor: theme.primary }}
         >
-            <Ionicons name={item.icon as any} size={24} color={theme.accent} style={{ marginRight: 10 }} />
+            <Ionicons name={item.type === 'Home' ? 'home' : item.type === 'Trip' ? 'airplane' : 'people'} size={24} color={theme.accent} style={{ marginRight: 10 }} />
             <View>
                 <Text className="text-lg font-semibold" style={{ color: theme.text }}>{item.name}</Text>
-                <Text className="text-base font-semibold" style={{ color: getBalanceColor(item.balance) }}>
-                    Balance: ${item.balance}
-                </Text>
+                <Text style={{ color: theme.text }}>{item.members.length} members</Text>
             </View>
         </Animated.View>
     );
 
-    const renderActivityItem = (item: Activity, index: number) => (
+    const renderActivityItem = ({ item, index }: { item: Expense; index: number }) => (
         <Animated.View
-            key={item.id}
             entering={FadeInLeft.delay(index * 100)}
             className="mb-2 flex-row items-center"
             style={{ backgroundColor: theme.primary, borderRadius: 10, padding: 10 }}
         >
-            <Ionicons name={item.icon as any} size={20} color={theme.accent} style={{ marginRight: 10 }} />
-            <Text className="text-sm" style={{ color: theme.text }}>{item.description}</Text>
+            <Ionicons name="cash" size={20} color={theme.accent} style={{ marginRight: 10 }} />
+            <Text className="text-sm" style={{ color: theme.text }}>
+                {`${item.description} - ${item.totalAmount}`}
+            </Text>
         </Animated.View>
     );
 
@@ -160,20 +194,21 @@ const MainScreen: React.FC = memo(() => {
                 />
                 <View className="flex-1 px-4 py-6 md:px-6 md:py-10 mt-2">
                     <View className="mb-5">
-                        <TypewriterText
-                            text={`Welcome back, ${userName}!`}
-                            style={{
-                                color: theme.text,
-                                fontSize: 26,
-                                fontWeight: 'bold',
-                                fontFamily: 'PoppinsSemiBold',
-                                marginBottom: 10
-                            }}
-                            className="text-2xl md:text-3xl font-bold"
-                        />
-                        <Text className="text-2xl font-bold" style={{ color: theme.accent }}>$20 you are owed</Text>
+                        {isUserDataLoaded && (
+                            <TypewriterText
+                                text={`Welcome back, ${userName}!`}
+                                style={{
+                                    color: theme.text,
+                                    fontSize: 26,
+                                    fontWeight: 'bold',
+                                    fontFamily: 'PoppinsSemiBold',
+                                    marginBottom: 10
+                                }}
+                                className="text-2xl md:text-3xl font-bold"
+                            />
+                        )}
                     </View>
-
+    
                     <View className="flex-row justify-between mb-5">
                         <TouchableOpacity
                             className="bg-accent rounded-2xl flex-1 mr-2 p-4"
@@ -194,26 +229,45 @@ const MainScreen: React.FC = memo(() => {
                             </Text>
                         </TouchableOpacity>
                     </View>
-
+    
                     <Text className="text-lg font-semibold mb-2" style={{ color: theme.accent }}>Your Groups</Text>
-                    <View className="mb-5">
-                        {groups.map((group, index) => renderGroupItem(group, index))}
-                    </View>
-
-                    <TouchableOpacity
-                        className="bg-primary rounded-2xl p-4 mb-5"
-                        style={{ backgroundColor: theme.primary }}
-                        onPress={() => router.push('../Screens/Create_join')}
-                    >
-                        <Text className="text-center text-base font-semibold" style={{ color: theme.text }}>
-                            Create or Join Group
-                        </Text>
-                    </TouchableOpacity>
-
-                    <Text className="text-lg font-semibold mb-2" style={{ color: theme.accent }}>Recent Activity</Text>
-                    <View>
-                        {recentActivity.map((activity, index) => renderActivityItem(activity, index))}
-                    </View>
+                    <FlatList
+                        data={groups}
+                        renderItem={renderGroupItem}
+                        keyExtractor={(item) => item.id}
+                        scrollEnabled={false}
+                        ListFooterComponent={() => (
+                            <>
+                                {groups.length > 0 && (
+                                    <TouchableOpacity
+                                        className="bg-primary rounded-2xl p-4 mb-2"
+                                        style={{ backgroundColor: theme.primary }}
+                                        onPress={() => router.push('/(tabs)/AllGroups')}
+                                    >
+                                        <Text className="text-center text-base font-semibold" style={{ color: theme.text }}>
+                                            VIEW ALL GROUPS
+                                        </Text>
+                                    </TouchableOpacity>
+                                )}
+                                <TouchableOpacity
+                                    className="bg-primary rounded-2xl p-4 mb-5"
+                                    style={{ backgroundColor: theme.primary }}
+                                    onPress={() => router.push('../Screens/Create_join')}
+                                >
+                                    <Text className="text-center text-base font-semibold" style={{ color: theme.text }}>
+                                        Create or Join Group
+                                    </Text>
+                                </TouchableOpacity>
+                                <Text className="text-lg font-semibold mb-2" style={{ color: theme.accent }}>Recent Activity</Text>
+                                <FlatList
+                                    data={recentActivity}
+                                    renderItem={renderActivityItem}
+                                    keyExtractor={(item) => item.id}
+                                    scrollEnabled={false}
+                                />
+                            </>
+                        )}
+                    />
                 </View>
             </SafeAreaView>
         </>

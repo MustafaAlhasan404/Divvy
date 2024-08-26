@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
+import { onSnapshot, query, collection, where } from 'firebase/firestore';
 import React, { useState, memo, useEffect } from 'react';
 import {
   View,
@@ -19,28 +20,28 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { useTheme } from '../../ThemeContext';
-
-interface Group {
-  id: string;
-  name: string;
-  memberCount: number;
-  balance: number;
-  icon: string;
-}
+import { auth, db } from '../../firebaseConfig';
+import { Group } from '../../firestore';
 
 const AllGroupsScreen: React.FC = memo(() => {
   const theme = useTheme();
   const router = useRouter();
   const animation = useSharedValue(0);
   const [searchQuery, setSearchQuery] = useState('');
-  const [groups] = useState<Group[]>([
-    { id: '1', name: 'Roommates', memberCount: 3, balance: 50, icon: 'home' },
-    { id: '2', name: 'Trip to Paris', memberCount: 5, balance: -30, icon: 'airplane' },
-    { id: '3', name: 'Office Lunch', memberCount: 8, balance: 0, icon: 'restaurant' },
-  ]);
+  const [groups, setGroups] = useState<Group[]>([]);
 
   useEffect(() => {
     animation.value = withTiming(1, { duration: 900 });
+    const user = auth.currentUser;
+    if (user) {
+      const groupsQuery = query(collection(db, 'Groups'), where('members', 'array-contains', user.uid));
+      const unsubscribe = onSnapshot(groupsQuery, (snapshot) => {
+        const updatedGroups = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Group));
+        setGroups(updatedGroups);
+      });
+
+      return () => unsubscribe();
+    }
   }, []);
 
   const backgroundStyle = useAnimatedStyle(() => ({
@@ -61,13 +62,10 @@ const AllGroupsScreen: React.FC = memo(() => {
       style={{ backgroundColor: theme.primary }}
       className="rounded-2xl p-4 mb-2 flex-row items-center"
     >
-      <Ionicons name={item.icon as any} size={24} color={theme.accent} style={{ marginRight: 10 }} />
+      <Ionicons name={item.type === 'Home' ? 'home' : item.type === 'Trip' ? 'airplane' : 'people'} size={24} color={theme.accent} style={{ marginRight: 10 }} />
       <View>
         <Text style={{ color: theme.text }} className="text-lg font-semibold">{item.name}</Text>
-        <Text style={{ color: theme.text }}>{item.memberCount} members</Text>
-        <Text style={{ color: item.balance >= 0 ? theme.positive : theme.negative }} className="font-semibold">
-          {item.balance >= 0 ? `You are owed ${item.balance}` : `You owe ${-item.balance}`}
-        </Text>
+        <Text style={{ color: theme.text }}>{item.members.length} members</Text>
       </View>
     </Animated.View>
   );

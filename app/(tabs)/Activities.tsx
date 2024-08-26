@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
 import React, { useState, useEffect, useCallback } from 'react';
@@ -8,6 +9,7 @@ import {
   SafeAreaView,
   StatusBar,
   FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import Animated, {
   FadeInRight,
@@ -18,6 +20,8 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { useTheme } from '../../ThemeContext';
+import { auth } from '../../firebaseConfig';
+import { getUserGroups, getGroupExpenses, Expense } from '../../firestore';
 
 interface Activity {
   id: string;
@@ -25,6 +29,7 @@ interface Activity {
   date: string;
   amount: number;
   icon: string;
+  groupName: string;
 }
 
 const AllRecentActivitiesScreen: React.FC = () => {
@@ -32,16 +37,68 @@ const AllRecentActivitiesScreen: React.FC = () => {
   const router = useRouter();
   const animation = useSharedValue(0);
   const [activities, setActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     animation.value = withTiming(1, { duration: 900 });
-    // Simulated API call to fetch activities
-    setActivities([
-      { id: '1', description: 'Paid for groceries', date: '2023-05-01', amount: -50, icon: 'cart' },
-      { id: '2', description: 'Split dinner bill', date: '2023-05-02', amount: 30, icon: 'restaurant' },
-      { id: '3', description: 'Movie tickets', date: '2023-05-03', amount: -20, icon: 'film' },
-    ]);
+    fetchActivities();
   }, []);
+
+  const fetchActivities = async () => {
+    setLoading(true);
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      try {
+        const userGroups = await getUserGroups(currentUser.uid);
+        const allExpenses: Activity[] = [];
+
+        for (const group of userGroups) {
+          const groupExpenses = await getGroupExpenses(group.id);
+          const groupActivities = groupExpenses.map(expense => ({
+            id: expense.id,
+            description: expense.description,
+            date: formatDate(expense.date),
+            amount: expense.totalAmount,
+            icon: getCategoryIcon(expense.category),
+            groupName: group.name,
+          }));
+          allExpenses.push(...groupActivities);
+        }
+
+        // Sort activities by date (most recent first)
+        allExpenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        setActivities(allExpenses);
+      } catch (error) {
+        console.error('Error fetching activities:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  const formatDate = (date: any): string => {
+    if (date && typeof date.toDate === 'function') {
+      // Firestore Timestamp
+      return date.toDate().toDateString();
+    } else if (date && typeof date === 'object' && date.seconds) {
+      // Firestore Timestamp stored as object
+      return new Date(date.seconds * 1000).toDateString();
+    } else if (date && !isNaN(Date.parse(date))) {
+      // Date string
+      return new Date(date).toDateString();
+    }
+    return 'Unknown Date';
+  };
+
+  const getCategoryIcon = (category?: string): string => {
+    switch (category) {
+      case 'food': return 'restaurant';
+      case 'transport': return 'car';
+      case 'entertainment': return 'film';
+      case 'shopping': return 'cart';
+      default: return 'cash';
+    }
+  };
 
   const backgroundStyle = useAnimatedStyle(() => ({
     transform: [
@@ -54,16 +111,16 @@ const AllRecentActivitiesScreen: React.FC = () => {
   const renderActivityItem = useCallback(({ item, index }: { item: Activity; index: number }) => (
     <Animated.View
       entering={FadeInRight.delay(index * 100)}
-      style={{ backgroundColor: theme.primary }}
+      style={{ backgroundColor: theme.secondary }}
       className="rounded-2xl p-4 mb-2 flex-row items-center"
     >
       <Ionicons name={item.icon as any} size={24} color={theme.accent} style={{ marginRight: 10 }} />
       <View style={{ flex: 1 }}>
         <Text style={{ color: theme.text }} className="text-lg font-semibold">{item.description}</Text>
-        <Text style={{ color: theme.text }}>{item.date}</Text>
+        <Text style={{ color: theme.accent }} className="text-sm">{item.groupName} • {item.date}</Text>
       </View>
-      <Text style={{ color: item.amount >= 0 ? theme.positive : theme.negative }} className="font-semibold">
-        {item.amount >= 0 ? `+$${item.amount}` : `-$${Math.abs(item.amount)}`}
+      <Text style={{ color: theme.accent }} className="font-semibold">
+        ${item.amount.toFixed(2)}
       </Text>
     </Animated.View>
   ), [theme]);
@@ -97,14 +154,18 @@ const AllRecentActivitiesScreen: React.FC = () => {
         className="rounded-b-[50px] md:rounded-b-[80px]"
       />
       <View className="flex-1 px-4 py-20 md:px-6 md:py-10">
-        <FlatList
-          data={activities}
-          renderItem={renderActivityItem}
-          keyExtractor={item => item.id}
-          ListEmptyComponent={
-            <Text style={{ color: theme.text, textAlign: 'center' }}>No recent activities</Text>
-          }
-        />
+        {loading ? (
+          <ActivityIndicator size="large" color={theme.accent} />
+        ) : (
+          <FlatList
+            data={activities}
+            renderItem={renderActivityItem}
+            keyExtractor={item => item.id}
+            ListEmptyComponent={
+              <Text style={{ color: theme.text, textAlign: 'center' }}>No recent activities</Text>
+            }
+          />
+        )}
       </View>
     </SafeAreaView>
   );

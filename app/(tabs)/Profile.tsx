@@ -19,20 +19,30 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { useTheme } from '../../ThemeContext';
+import { auth } from '../../firebaseConfig';
+import { getUser, User } from '../../firestore';
 
 const ProfileSettings: React.FC = () => {
   const theme = useTheme();
   const router = useRouter();
   const animation = useSharedValue(0);
 
-  const [name] = useState('John Doe');
-  const [email] = useState('john.doe@example.com');
+  const [user, setUser] = useState<User | null>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = useState(true);
 
   useEffect(() => {
     animation.value = withTiming(1, { duration: 900 });
+    fetchUserData();
   }, []);
+
+  const fetchUserData = async () => {
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      const userData = await getUser(currentUser.uid);
+      setUser(userData);
+    }
+  };
 
   const backgroundStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: interpolate(animation.value, [0, 1], [1000, 0]) }],
@@ -101,8 +111,9 @@ const ProfileSettings: React.FC = () => {
       <ScrollView className="flex-1 px-4 py-20 md:px-6 md:py-10">
         {renderSection("Profile Information", (
           <>
-            {renderProfileInfo("person", name)}
-            {renderProfileInfo("mail", email)}
+            {renderProfileInfo("person", user?.fullName || 'Loading...')}
+            {renderProfileInfo("mail", user?.email || 'Loading...')}
+            {user?.phoneNumber && renderProfileInfo("call", user.phoneNumber)}
           </>
         ), 100)}
 
@@ -128,7 +139,10 @@ const ProfileSettings: React.FC = () => {
 
         <TouchableOpacity
           style={{ backgroundColor: theme.negative, padding: 14, borderRadius: 12, marginTop: 20, marginBottom: 16 }}
-          onPress={() => router.push('../Screens/Login')}
+          onPress={() => {
+            auth.signOut();
+            router.push('../Screens/Login');
+          }}
         >
           <Text style={[{ color: theme.primary, textAlign: 'center', fontSize: 18, fontWeight: 'bold' }, textStyle]}>
             Sign Out

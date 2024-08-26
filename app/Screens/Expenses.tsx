@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
-import React, { useState, memo, useEffect, useMemo } from 'react';
+import React, { useState, memo, useEffect } from 'react';
 import {
   Animated,
   View,
@@ -12,11 +12,23 @@ import {
   Platform,
   KeyboardAvoidingView,
   ScrollView,
+  Alert,
+  FlatList,
 } from 'react-native';
 import Modal from 'react-native-modal';
 
 import { useTheme } from '../../ThemeContext';
-
+import { auth } from '../../firebaseConfig';
+import { 
+  createExpense, 
+  createExpenseShares, 
+  getUserGroups, 
+  getUser, 
+  Group, 
+  User, 
+  Expense,
+  ExpenseShare
+} from '../../firestore';
 
 const Expenses: React.FC = memo(() => {
   const theme = useTheme();
@@ -26,12 +38,14 @@ const Expenses: React.FC = memo(() => {
 
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('');
-  const [group, setGroup] = useState('');
-  const [splitMethod, setSplitMethod] = useState('equal');
-  const [payers, setPayers] = useState<{ [key: string]: boolean }>({});
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+  const [splitMethod, setSplitMethod] = useState<'equal' | 'custom'>('equal');
+  const [payers, setPayers] = useState<{ [userId: string]: number }>({});
   const [isPayerModalVisible, setPayerModalVisible] = useState(false);
+  const [isGroupModalVisible, setGroupModalVisible] = useState(false);
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [groupMembers, setGroupMembers] = useState<User[]>([]);
 
   useEffect(() => {
     Animated.timing(animation, {
@@ -39,7 +53,37 @@ const Expenses: React.FC = memo(() => {
       duration: 900,
       useNativeDriver: true,
     }).start();
+
+    fetchUserGroups();
   }, []);
+
+  useEffect(() => {
+    if (selectedGroup) {
+      fetchGroupMembers();
+    }
+  }, [selectedGroup]);
+
+  const fetchUserGroups = async () => {
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      const userGroups = await getUserGroups(currentUser.uid);
+      setGroups(userGroups);
+    }
+  };
+
+  const fetchGroupMembers = async () => {
+    if (selectedGroup) {
+      const members = await Promise.all(selectedGroup.members.map(memberId => getUser(memberId)));
+      const filteredMembers = members.filter((member): member is User => member !== null);
+      setGroupMembers(filteredMembers);
+      
+      const initialPayers = filteredMembers.reduce((acc, member) => {
+        acc[member.id] = 0;
+        return acc;
+      }, {} as { [key: string]: number });
+      setPayers(initialPayers);
+    }
+  };
 
   const backgroundStyle = {
     transform: [
@@ -52,9 +96,55 @@ const Expenses: React.FC = memo(() => {
     ],
   };
 
-  const handleDone = () => {
-    console.log('Expense saved:', { amount, description, category, group, splitMethod, payers, date });
-    router.back();
+  const handleDone = async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      Alert.alert('Error', 'You must be logged in to create an expense');
+      return;
+    }
+
+    if (!amount || !description || !selectedGroup) {
+      Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
+
+    try {
+      const totalAmount = parseFloat(amount);
+      const expenseData: Omit<Expense, 'id'> = {
+        groupId: selectedGroup.id,
+        paidBy: payers,
+        totalAmount,
+        description,
+        date: new Date(date),
+        splitMethod,
+      };
+
+      const expenseId = await createExpense(expenseData);
+
+      const shares: Omit<ExpenseShare, 'id'>[] = selectedGroup.members.map(memberId => {
+        let shareAmount: number;
+        if (splitMethod === 'equal') {
+          shareAmount = totalAmount / selectedGroup.members.length;
+        } else {
+          shareAmount = payers[memberId] || 0;
+        }
+
+        return {
+          expenseId,
+          userId: memberId,
+          amount: shareAmount,
+          isPaid: payers[memberId] ? payers[memberId] >= shareAmount : false,
+        };
+      });
+
+      await createExpenseShares(shares);
+
+      Alert.alert('Success', 'Expense created successfully');
+      router.back();
+    } catch (error) {
+      console.error('Error creating expense:', error);
+      Alert.alert('Error', 'Failed to create expense. Please try again.');
+    }
   };
 
   const renderInput = (
@@ -83,13 +173,9 @@ const Expenses: React.FC = memo(() => {
     </View>
   );
 
-  const renderDropdown = (
-    value: string,
-    setter: React.Dispatch<React.SetStateAction<string>>,
-    placeholder: string
-  ) => (
+  const renderGroupDropdown = () => (
     <View style={{ marginBottom: 20 }}>
-      <Text style={{ color: theme.text, marginBottom: 5, fontFamily: 'PoppinsSemiBold' }}>{placeholder}:</Text>
+      <Text style={{ color: theme.text, marginBottom: 5, fontFamily: 'PoppinsSemiBold' }}>Group:</Text>
       <TouchableOpacity
         style={{
           backgroundColor: theme.primary,
@@ -99,10 +185,10 @@ const Expenses: React.FC = memo(() => {
           justifyContent: 'space-between',
           alignItems: 'center',
         }}
-        onPress={() => {/* Implement dropdown logic */}}
+        onPress={() => setGroupModalVisible(true)}
       >
-        <Text style={{ color: value ? theme.text : '#6B7280', fontSize: 16, fontFamily: 'PoppinsSemiBold' }}>
-          {value || `Select ${placeholder}`}
+        <Text style={{ color: selectedGroup ? theme.text : '#6B7280', fontSize: 16, fontFamily: 'PoppinsSemiBold' }}>
+          {selectedGroup ? selectedGroup.name : 'Select Group'}
         </Text>
         <Ionicons name="chevron-down" size={24} color={theme.text} />
       </TouchableOpacity>
@@ -124,7 +210,7 @@ const Expenses: React.FC = memo(() => {
         onPress={() => setPayerModalVisible(true)}
       >
         <Text style={{ color: Object.keys(payers).length ? theme.text : '#6B7280', fontSize: 16, fontFamily: 'PoppinsSemiBold' }}>
-          {Object.keys(payers).filter(k => payers[k]).join(', ') || 'Select Payers'}
+          {Object.keys(payers).filter(k => payers[k] > 0).map(k => `${groupMembers.find(m => m.id === k)?.fullName}: ${payers[k]}`).join(', ') || 'Select Payers'}
         </Text>
         <Ionicons name="chevron-down" size={24} color={theme.text} />
       </TouchableOpacity>
@@ -135,7 +221,7 @@ const Expenses: React.FC = memo(() => {
     <View style={{ marginBottom: 20 }}>
       <Text style={{ color: theme.text, marginBottom: 5, fontFamily: 'PoppinsSemiBold' }}>Split:</Text>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-        {['Equal', 'Percentage', 'Custom'].map((option) => (
+        {['Equal', 'Custom'].map((option) => (
           <TouchableOpacity
             key={option}
             style={{
@@ -145,7 +231,7 @@ const Expenses: React.FC = memo(() => {
               flex: 1,
               marginHorizontal: 5,
             }}
-            onPress={() => setSplitMethod(option.toLowerCase())}
+            onPress={() => setSplitMethod(option.toLowerCase() as 'equal' | 'custom')}
           >
             <Text style={{
               color: splitMethod === option.toLowerCase() ? theme.primary : theme.text,
@@ -161,12 +247,12 @@ const Expenses: React.FC = memo(() => {
   );
 
   const PayerModal = () => {
-    const [modalPayers, setModalPayers] = useState<{ [key: string]: boolean }>(payers);
+    const [modalPayers, setModalPayers] = useState<{ [key: string]: number }>(payers);
 
-    const toggleModalPayer = (payer: string) => {
+    const updatePayerAmount = (userId: string, amount: string) => {
       setModalPayers(prev => ({
         ...prev,
-        [payer]: !prev[payer]
+        [userId]: parseFloat(amount) || 0
       }));
     };
 
@@ -175,37 +261,95 @@ const Expenses: React.FC = memo(() => {
       setPayerModalVisible(false);
     };
 
-    const payerList = useMemo(() => ['You', 'John', 'Sarah', 'Mike'], []);
+    return (
+      <Modal
+      isVisible={isPayerModalVisible}
+      onBackdropPress={() => setPayerModalVisible(false)}
+      style={{ 
+        justifyContent: 'center',
+        alignItems: 'center',
+        margin: 0
+      }}
+    >
+      <View style={{ 
+        backgroundColor: theme.primary, 
+        padding: 20, 
+        borderRadius: 20,
+        width: '80%',
+        maxHeight: '80%'
+      }}>
+        <Text style={{ color: theme.text, fontSize: 20, fontWeight: 'bold', marginBottom: 15 }}>Select Payers</Text>
+        <ScrollView>
+          {groupMembers.map(member => (
+            <View key={member.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10 }}>
+              <Text style={{ color: theme.text, fontSize: 16, flex: 1 }}>{member.fullName}</Text>
+              <TextInput
+                style={{
+                  backgroundColor: theme.secondary,
+                  color: theme.text,
+                  borderRadius: 10,
+                  padding: 10,
+                  width: 100,
+                  textAlign: 'right',
+                }}
+                value={modalPayers[member.id]?.toString() || ''}
+                onChangeText={(text) => updatePayerAmount(member.id, text)}
+                placeholder="0.00"
+                placeholderTextColor="#6B7280"
+                keyboardType="numeric"
+              />
+            </View>
+          ))}
+        </ScrollView>
+        <TouchableOpacity
+          style={{ 
+            backgroundColor: theme.accent, 
+            padding: 15, 
+            borderRadius: 15, 
+            marginTop: 20 
+          }}
+          onPress={handleModalDone}
+        >
+          <Text style={{ 
+            color: theme.primary, 
+            textAlign: 'center', 
+            fontSize: 16, 
+            fontWeight: 'bold' 
+          }}>
+            Done
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </Modal>
+    );
+  };
+
+  const GroupModal = () => {
+    const handleGroupSelect = (group: Group) => {
+      setSelectedGroup(group);
+      setGroupModalVisible(false);
+    };
 
     return (
       <Modal
-        isVisible={isPayerModalVisible}
-        onBackdropPress={() => setPayerModalVisible(false)}
+        isVisible={isGroupModalVisible}
+        onBackdropPress={() => setGroupModalVisible(false)}
         style={{ justifyContent: 'flex-end', margin: 0 }}
       >
-        <View style={{ backgroundColor: theme.primary, padding: 20, borderTopLeftRadius: 20, borderTopRightRadius: 20 }}>
-          <Text style={{ color: theme.text, fontSize: 20, fontWeight: 'bold', marginBottom: 15 }}>Select Payers</Text>
-          {payerList.map(payer => (
-            <TouchableOpacity
-              key={payer}
-              style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10 }}
-              onPress={() => toggleModalPayer(payer)}
-            >
-              <Ionicons
-                name={modalPayers[payer] ? 'checkbox-outline' : 'square-outline'}
-                size={24}
-                color={theme.accent}
-                style={{ marginRight: 10 }}
-              />
-              <Text style={{ color: theme.text, fontSize: 16 }}>{payer}</Text>
-            </TouchableOpacity>
-          ))}
-          <TouchableOpacity
-            style={{ backgroundColor: theme.accent, padding: 15, borderRadius: 15, marginTop: 20 }}
-            onPress={handleModalDone}
-          >
-            <Text style={{ color: theme.primary, textAlign: 'center', fontSize: 16, fontWeight: 'bold' }}>Done</Text>
-          </TouchableOpacity>
+        <View style={{ backgroundColor: theme.primary, padding: 20, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '80%' }}>
+          <Text style={{ color: theme.text, fontSize: 20, fontWeight: 'bold', marginBottom: 15 }}>Select Group</Text>
+          <FlatList
+            data={groups}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={{ paddingVertical: 10 }}
+                onPress={() => handleGroupSelect(item)}
+              >
+                <Text style={{ color: theme.text, fontSize: 16 }}>{item.name}</Text>
+              </TouchableOpacity>
+            )}
+          />
         </View>
       </Modal>
     );
@@ -216,25 +360,10 @@ const Expenses: React.FC = memo(() => {
       <View className="flex-1">
         {renderInput(amount, setAmount, 'Amount', 'numeric')}
         {renderInput(description, setDescription, 'Description')}
-        {renderDropdown(category, setCategory, 'Category')}
-        {renderDropdown(group, setGroup, 'Group')}
+        {renderGroupDropdown()}
         {renderSplitOptions()}
         {renderPaidBy()}
-        {renderDropdown(date, setDate, 'Date')}
-
-        <TouchableOpacity
-          style={{
-            backgroundColor: theme.primary,
-            padding: 15,
-            borderRadius: 15,
-            marginBottom: 20,
-          }}
-          onPress={() => {/* Handle photo upload */}}
-        >
-          <Text style={{ fontFamily: 'PoppinsSemiBold', color: theme.text, textAlign: 'center', fontSize: 16 }}>
-            Add Receipt Photo (optional)
-          </Text>
-        </TouchableOpacity>
+        {renderInput(date, setDate, 'Date')}
       </View>
     </ScrollView>
   );
@@ -291,6 +420,7 @@ const Expenses: React.FC = memo(() => {
           </KeyboardAvoidingView>
         )}
         <PayerModal />
+        <GroupModal />
       </SafeAreaView>
     </>
   );

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
-import React, { useState, memo } from 'react';
+import React, { useState, memo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -10,10 +10,13 @@ import {
   StatusBar,
   Platform,
   KeyboardAvoidingView,
-  ScrollView,
+ScrollView,
+  Alert,
 } from 'react-native';
 
 import { useTheme } from '../../ThemeContext';
+import { auth } from '../../firebaseConfig';
+import { createGroup, searchUser } from '../../firestore';
 
 const CreateNewGroup: React.FC = memo(() => {
   const theme = useTheme();
@@ -21,25 +24,65 @@ const CreateNewGroup: React.FC = memo(() => {
   const [groupName, setGroupName] = useState('');
   const [groupType, setGroupType] = useState('');
   const [newMember, setNewMember] = useState('');
-  const [members, setMembers] = useState(['You (Admin)']);
+  const [members, setMembers] = useState<{ id: string; name: string }[]>([]);
 
-  const handleSave = () => {
-    console.log('Saving group:', { groupName, groupType, members });
-    router.back();
-  };
-
-  const handleAddMember = () => {
-    if (newMember) {
-      setMembers([...members, newMember]);
-      setNewMember('');
+  const handleSave = useCallback(async () => {
+    if (!groupName || !groupType) {
+      Alert.alert('Error', 'Please fill in all required fields');
+      return;
     }
-  };
 
-  const handleRemoveMember = (index: number) => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      Alert.alert('Error', 'User not authenticated');
+      return;
+    }
+
+    try {
+      const newGroup = {
+        name: groupName,
+        members: [currentUser.uid, ...members.map(member => member.id)],
+        createdBy: currentUser.uid,
+        createdAt: new Date(),
+        type: groupType,
+      };
+
+      const groupId = await createGroup(newGroup);
+      console.log('Group created with ID:', groupId);
+      Alert.alert('Success', 'Group created successfully');
+      router.back();
+    } catch (error) {
+      console.error('Error creating group:', error);
+      Alert.alert('Error', 'Failed to create group. Please try again.');
+    }
+  }, [groupName, groupType, members, router]);
+
+  const handleAddMember = useCallback(async () => {
+    if (newMember) {
+      try {
+        const user = await searchUser(newMember);
+        if (user) {
+          if (!members.some(member => member.id === user.id)) {
+            setMembers([...members, { id: user.id, name: user.name }]);
+            setNewMember('');
+          } else {
+            Alert.alert('Info', 'This user is already a member of the group.');
+          }
+        } else {
+          Alert.alert('Error', 'No such user found.');
+        }
+      } catch (error) {
+        console.error('Error searching for user:', error);
+        Alert.alert('Error', 'Failed to search for user. Please try again.');
+      }
+    }
+  }, [newMember, members]);
+
+  const handleRemoveMember = useCallback((index: number) => {
     setMembers(members.filter((_, i) => i !== index));
-  };
+  }, [members]);
 
-  const renderInputField = (label: string, value: string, setter: (text: string) => void, placeholder: string) => (
+  const renderInputField = useCallback((label: string, value: string, setter: (text: string) => void, placeholder: string) => (
     <View style={{ marginBottom: 25 }}>
       <Text style={{ color: theme.text, fontSize: 16, fontFamily: 'PoppinsSemiBold', marginBottom: 8 }}>{label}</Text>
       <TextInput
@@ -59,9 +102,9 @@ const CreateNewGroup: React.FC = memo(() => {
         placeholderTextColor="#6B7280"
       />
     </View>
-  );
+  ), [theme]);
 
-  const renderGroupTypeSelection = () => (
+  const renderGroupTypeSelection = useCallback(() => (
     <View style={{ marginBottom: 25 }}>
       <Text style={{ color: theme.text, fontSize: 16, fontFamily: 'PoppinsSemiBold', marginBottom: 8 }}>Group Type</Text>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
@@ -93,9 +136,9 @@ const CreateNewGroup: React.FC = memo(() => {
         ))}
       </View>
     </View>
-  );
+  ), [theme, groupType]);
 
-  const renderAddMembers = () => (
+  const renderAddMembers = useCallback(() => (
     <View style={{ marginBottom: 25 }}>
       <Text style={{ color: theme.text, fontSize: 16, fontFamily: 'PoppinsSemiBold', marginBottom: 8 }}>Add Members</Text>
       <View style={{ flexDirection: 'row' }}>
@@ -114,7 +157,7 @@ const CreateNewGroup: React.FC = memo(() => {
           }}
           value={newMember}
           onChangeText={setNewMember}
-          placeholder="Enter email or name..."
+          placeholder="Enter username..."
           placeholderTextColor="#6B7280"
         />
         <TouchableOpacity
@@ -130,25 +173,23 @@ const CreateNewGroup: React.FC = memo(() => {
         </TouchableOpacity>
       </View>
     </View>
-  );
+  ), [theme, newMember, handleAddMember]);
 
-  const renderMembersList = () => (
+  const renderMembersList = useCallback(() => (
     <View style={{ marginBottom: 25 }}>
       <Text style={{ color: theme.text, fontSize: 16, fontFamily: 'PoppinsSemiBold', marginBottom: 8 }}>Members</Text>
       {members.map((member, index) => (
         <View key={index} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <Text style={{ color: theme.text, fontSize: 16, fontFamily: 'PoppinsRegular' }}>{member}</Text>
-          {index !== 0 && (
-            <TouchableOpacity onPress={() => handleRemoveMember(index)}>
-              <Ionicons name="close-circle" size={28} color={theme.accent} />
-            </TouchableOpacity>
-          )}
+          <Text style={{ color: theme.text, fontSize: 16, fontFamily: 'PoppinsRegular' }}>{member.name}</Text>
+          <TouchableOpacity onPress={() => handleRemoveMember(index)}>
+            <Ionicons name="close-circle" size={28} color={theme.accent} />
+          </TouchableOpacity>
         </View>
       ))}
     </View>
-  );
+  ), [theme, members, handleRemoveMember]);
 
-  const renderContent = () => (
+  const renderContent = useCallback(() => (
     <ScrollView 
       style={{ flexGrow: 1 }} 
       contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 24, paddingBottom: 36 }}
@@ -160,7 +201,7 @@ const CreateNewGroup: React.FC = memo(() => {
         {renderMembersList()}
       </View>
     </ScrollView>
-  );
+  ), [groupName, renderInputField, renderGroupTypeSelection, renderAddMembers, renderMembersList]);
 
   return (
     <>

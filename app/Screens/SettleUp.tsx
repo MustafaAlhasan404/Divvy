@@ -1,168 +1,274 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
-import React, { useState, memo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   SafeAreaView,
   StatusBar,
-  ScrollView,
+  FlatList,
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Modal,
+  TextInput,
 } from 'react-native';
 
 import { useTheme } from '../../ThemeContext';
+import { auth } from '../../firebaseConfig';
+import { 
+  getUserGroups, 
+  getUser, 
+  Group, 
+  User, 
+  Settlement,
+  calculateSettlements,
+  updateSettlement
+} from '../../firestore';
 
-interface Balance {
-  id: string;
-  name: string;
-  amount: number;
-}
-
-const SettleUp: React.FC = memo(() => {
+const SettleUp: React.FC = () => {
   const theme = useTheme();
   const router = useRouter();
-  const [selectedGroup, setSelectedGroup] = useState('');
-  const [selectedBalances, setSelectedBalances] = useState<string[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [filteredGroups, setFilteredGroups] = useState<Group[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
+  const [settlements, setSettlements] = useState<Settlement[]>([]);
+  const [users, setUsers] = useState<{ [key: string]: User }>({});
+  const [loading, setLoading] = useState(true);
+  const [groupModalVisible, setGroupModalVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const youOwe: Balance[] = [
-    { id: '1', name: 'Sarah', amount: 15.00 },
-    { id: '2', name: 'John', amount: 7.50 },
-  ];
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: theme.primary,
+    },
+    content: {
+      flex: 1,
+      padding: 20,
+    },
+    groupSelector: {
+      backgroundColor: theme.secondary,
+      borderRadius: 15,
+      padding: 15,
+      marginBottom: 20,
+    },
+    groupSelectorText: {
+      color: theme.text,
+      fontSize: 16,
+      fontFamily: 'PoppinsSemiBold',
+    },
+    settlementItem: {
+      backgroundColor: theme.primary,
+      borderRadius: 15,
+      padding: 15,
+      marginBottom: 10,
+    },
+    settlementText: {
+      color: theme.text,
+      fontSize: 16,
+      fontFamily: 'PoppinsSemiBold',
+    },
+    settlementAmount: {
+      color: theme.text,
+      fontSize: 18,
+      fontFamily: 'PoppinsBold',
+      marginTop: 5,
+    },
+    settleButton: {
+      backgroundColor: theme.accent,
+      borderRadius: 10,
+      padding: 10,
+      marginTop: 10,
+      alignItems: 'center',
+    },
+    settleButtonText: {
+      color: theme.primary,
+      fontFamily: 'PoppinsSemiBold',
+    },
+    emptyText: {
+      color: theme.text,
+      textAlign: 'center',
+      marginTop: 20,
+      fontFamily: 'PoppinsRegular',
+    },
+    modalContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    modalContent: {
+      backgroundColor: theme.primary,
+      borderRadius: 15,
+      padding: 20,
+      width: '80%',
+      maxHeight: '80%',
+    },
+    modalTitle: {
+      color: theme.text,
+      fontSize: 20,
+      fontFamily: 'PoppinsBold',
+      marginBottom: 15,
+    },
+    modalItem: {
+      paddingVertical: 10,
+    },
+    modalItemText: {
+      color: theme.text,
+      fontSize: 16,
+      fontFamily: 'PoppinsRegular',
+    },
+    searchInput: {
+      height: 40,
+      borderColor: theme.text,
+      borderWidth: 1,
+      borderRadius: 10,
+      paddingHorizontal: 10,
+      marginBottom: 15,
+      color: theme.text,
+    },
+  });
 
-  const youAreOwed: Balance[] = [
-    { id: '3', name: 'Alex', amount: 22.50 },
-  ];
+  useEffect(() => {
+    fetchUserGroups();
+  }, []);
 
-  const suggestedSettlements = [
-    { id: '1', text: 'You should pay Sarah $15.00' },
-    { id: '2', text: 'You should pay John $7.50' },
-    { id: '3', text: 'Alex should pay you $22.50' },
-  ];
+  useEffect(() => {
+    if (selectedGroup) {
+      fetchSettlements();
+    }
+  }, [selectedGroup]);
 
-  const toggleBalanceSelection = (id: string) => {
-    setSelectedBalances(prev => 
-      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
-    );
-  };
+  const fetchUserGroups = useCallback(async () => {
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      try {
+        const userGroups = await getUserGroups(currentUser.uid);
+        setGroups(userGroups);
+        setFilteredGroups(userGroups);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching user groups:', error);
+        Alert.alert('Error', 'Failed to fetch user groups. Please try again.');
+        setLoading(false);
+      }
+    } else {
+      Alert.alert('Error', 'No user is currently logged in.');
+      setLoading(false);
+    }
+  }, []);
 
-  const renderDropdown = (
-    value: string,
-    _setter: React.Dispatch<React.SetStateAction<string>>,
-    placeholder: string
-  ) => (
-    <View style={{ marginBottom: 20 }}>
-      <Text style={{ color: theme.text, marginBottom: 5, fontFamily: 'PoppinsSemiBold', fontSize: 16 }}>{placeholder}:</Text>
-      <TouchableOpacity
-        style={{
-          backgroundColor: theme.primary,
-          borderRadius: 10,
-          padding: 15,
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          shadowColor: theme.text,
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-          elevation: 3,
-          borderWidth: 1,
-          borderColor: theme.accent,
-        }}
-        onPress={() => {/* Implement dropdown logic */}}
-      >
-        <Text style={{ color: value ? theme.text : '#6B7280', fontSize: 16, fontFamily: 'PoppinsSemiBold' }}>
-          {value || `Select ${placeholder}`}
+  const fetchSettlements = useCallback(async () => {
+    if (selectedGroup) {
+      setLoading(true);
+      try {
+        const groupSettlements = await calculateSettlements(selectedGroup.id);
+        setSettlements(groupSettlements);
+
+        const userPromises = selectedGroup.members.map(memberId => getUser(memberId));
+        const fetchedUsers = await Promise.all(userPromises);
+        const usersObj = fetchedUsers.reduce((acc, user) => {
+          if (user) acc[user.id] = user;
+          return acc;
+        }, {} as { [key: string]: User });
+        setUsers(usersObj);
+      } catch (error) {
+        console.error('Error fetching settlements:', error);
+        Alert.alert('Error', 'Failed to fetch settlements. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    }
+  }, [selectedGroup]);
+
+  const handleSettle = useCallback(async (settlement: Settlement) => {
+    try {
+      await updateSettlement(settlement.id, { settled: true });
+      await fetchSettlements();
+      Alert.alert('Success', 'Settlement marked as completed');
+    } catch (error) {
+      console.error('Error settling up:', error);
+      Alert.alert('Error', 'Failed to settle up. Please try again.');
+    }
+  }, [fetchSettlements]);
+
+  const renderSettlement = useCallback(({ item }: { item: Settlement }) => {
+    const currentUserId = auth.currentUser?.uid;
+    const isCurrentUserOwes = item.fromUserId === currentUserId;
+    const isCurrentUserOwed = item.toUserId === currentUserId;
+
+    return (
+      <View style={styles.settlementItem}>
+        <Text style={styles.settlementText}>
+          {isCurrentUserOwes ? 'You owe' : `${users[item.fromUserId]?.fullName} owes`} {isCurrentUserOwed ? 'you' : users[item.toUserId]?.fullName}
         </Text>
-        <Ionicons name="chevron-down" size={24} color={theme.text} />
-      </TouchableOpacity>
-    </View>
-  );
+        <Text style={styles.settlementAmount}>
+          ${item.amount.toFixed(2)}
+        </Text>
+        {!item.settled && (
+          <TouchableOpacity
+            style={styles.settleButton}
+            onPress={() => handleSettle(item)}
+          >
+            <Text style={styles.settleButtonText}>Settle Up</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  }, [users, handleSettle, styles]);
 
-  const renderBalanceSection = (title: string, balances: Balance[]) => (
-    <View style={{ marginBottom: 20 }}>
-      <Text style={{ color: theme.accent, fontSize: 18, fontFamily: 'PoppinsSemiBold', marginBottom: 10 }}>{title}</Text>
-      {balances.map((balance) => (
-        <TouchableOpacity
-          key={balance.id}
-          style={{ 
-            flexDirection: 'row', 
-            alignItems: 'center', 
-            marginBottom: 10,
-            backgroundColor: selectedBalances.includes(balance.id) ? theme.accent + '20' : 'transparent',
-            padding: 10,
-            borderRadius: 10,
-          }}
-          onPress={() => toggleBalanceSelection(balance.id)}
-        >
-          <Ionicons
-            name={selectedBalances.includes(balance.id) ? 'checkbox-outline' : 'square-outline'}
-            size={24}
-            color={theme.accent}
-            style={{ marginRight: 10 }}
-          />
-          <View>
-            <Text style={{ color: theme.text, fontSize: 16, fontFamily: 'PoppinsSemiBold' }}>
-              {balance.name}
-            </Text>
-            <Text style={{ color: theme.text, fontSize: 14 }}>
-              ${Math.abs(balance.amount).toFixed(2)}
-            </Text>
-          </View>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
-
-  const renderSuggestedSettlements = () => (
-    <View style={{ marginBottom: 20 }}>
-      <Text style={{ color: theme.accent, fontSize: 18, fontFamily: 'PoppinsSemiBold', marginBottom: 10 }}>Suggested settlements:</Text>
-      {suggestedSettlements.map((item) => (
-        <Text key={item.id} style={{ color: theme.text, fontSize: 16, marginBottom: 5 }}>{item.text}</Text>
-      ))}
-    </View>
-  );
-
-  const renderButton = (text: string, onPress: () => void) => (
+  const renderGroupSelector = () => (
     <TouchableOpacity
-      style={{
-        backgroundColor: theme.accent,
-        padding: 15,
-        borderRadius: 10,
-        marginBottom: 20,
-        shadowColor: theme.text,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
-      }}
-      onPress={onPress}
+      style={styles.groupSelector}
+      onPress={() => setGroupModalVisible(true)}
     >
-      <Text style={{ fontFamily: 'PoppinsSemiBold', color: theme.primary, textAlign: 'center', fontSize: 16 }}>
-        {text}
+      <Text style={styles.groupSelectorText}>
+        {selectedGroup ? selectedGroup.name : 'Select a group'}
       </Text>
     </TouchableOpacity>
   );
 
-  const handleMarkAsSettled = () => {
-    console.log('Marked as settled:', selectedBalances);
-    // Implement logic to mark selected balances as settled
-  };
-
-  const handleRecordManualSettlement = () => {
-    // Implement logic to record manual settlement
-  };
-
-  const renderContent = () => (
-    <ScrollView style={{ flexGrow: 1, padding: 20 }}>
-      <View style={{ flex: 1 }}>
-        {renderDropdown(selectedGroup, setSelectedGroup, 'Choose Group')}
-        {renderBalanceSection('You owe:', youOwe)}
-        {renderBalanceSection('You are owed:', youAreOwed)}
-        {renderSuggestedSettlements()}
-        {renderButton('Mark Selected Balances as Settled', handleMarkAsSettled)}
-        {renderButton('Record Manual Settlement', handleRecordManualSettlement)}
+  const renderGroupModal = () => (
+    <Modal
+      visible={groupModalVisible}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setGroupModalVisible(false)}
+    >
+      <View style={styles.modalContainer}>
+        <View style={styles.modalContent}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search groups"
+            placeholderTextColor={theme.text}
+            value={searchQuery}
+            onChangeText={text => {
+              setSearchQuery(text);
+              const filtered = groups.filter(group => group.name.toLowerCase().includes(text.toLowerCase()));
+              setFilteredGroups(filtered);
+            }}
+          />
+          <Text style={styles.modalTitle}>Select a Group</Text>
+          <FlatList
+            data={filteredGroups}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.modalItem}
+                onPress={() => {
+                  setSelectedGroup(item);
+                  setGroupModalVisible(false);
+                }}
+              >
+                <Text style={styles.modalItemText}>{item.name}</Text>
+              </TouchableOpacity>
+            )}
+          />
+        </View>
       </View>
-    </ScrollView>
+    </Modal>
   );
 
   return (
@@ -183,14 +289,37 @@ const SettleUp: React.FC = memo(() => {
               <Ionicons name="arrow-back" size={24} color={theme.text} style={{ marginLeft: 15 }} />
             </TouchableOpacity>
           ),
+          headerBackVisible: false,
         }} 
       />
       <StatusBar barStyle="light-content" backgroundColor={theme.secondary} />
-      <SafeAreaView style={{ flex: 1, backgroundColor: theme.secondary }}>
-        {renderContent()}
+      <SafeAreaView style={styles.container}>
+        <View style={styles.content}>
+          {renderGroupSelector()}
+          {loading ? (
+            <ActivityIndicator size="large" color={theme.accent} />
+          ) : selectedGroup ? (
+            settlements.length > 0 ? (
+              <FlatList
+                data={settlements}
+                renderItem={renderSettlement}
+                keyExtractor={(item) => item.id}
+              />
+            ) : (
+              <Text style={styles.emptyText}>
+                No settlements to show for this group.
+              </Text>
+            )
+          ) : (
+            <Text style={styles.emptyText}>
+              Please select a group to view settlements.
+            </Text>
+          )}
+        </View>
       </SafeAreaView>
+      {renderGroupModal()}
     </>
   );
-});
+};
 
 export default SettleUp;
