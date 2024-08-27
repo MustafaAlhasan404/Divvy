@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Stack, useRouter } from 'expo-router';
 import * as Firebase from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -17,11 +18,12 @@ import {
   TextStyle,
   KeyboardAvoidingView,
   Alert,
+  ScrollView,
 } from 'react-native';
+import CountryPicker, { Country, CountryCode } from 'react-native-country-picker-modal';
 
 import { useTheme } from '../../ThemeContext';
 import { db } from '../../firebaseConfig';
-
 
 const commonTextStyle: TextStyle = {
   fontFamily: 'PoppinsSemiBold',
@@ -67,13 +69,17 @@ const Signup: React.FC = memo(() => {
   const theme = useTheme();
   const [fullName, setFullName] = useState<string>('');
   const [email, setEmail] = useState<string>('');
-  const [mobileNumber, setMobileNumber] = useState<string>('');
-  const [dateOfBirth, setDateOfBirth] = useState<string>('');
+  const [countryCode, setCountryCode] = useState<CountryCode>('US');
+  const [callingCode, setCallingCode] = useState<string>('+1');
+  const [phoneNumber, setPhoneNumber] = useState<string>('');
+  const [dateOfBirth, setDateOfBirth] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
   const [password, setPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
+  const [showCountryPicker, setShowCountryPicker] = useState<boolean>(false);
   const router = useRouter();
   const [animation] = useState(new Animated.Value(0));
   const [keyboardOffset] = useState(new Animated.Value(0));
@@ -130,7 +136,7 @@ const Signup: React.FC = memo(() => {
       Alert.alert('Error', 'Passwords do not match');
       return;
     }
-    
+
     setLoading(true);
     try {
       const auth = Firebase.getAuth();
@@ -139,16 +145,28 @@ const Signup: React.FC = memo(() => {
         displayName: fullName
       });
 
+      await Firebase.sendEmailVerification(userCredential.user);
+
       const userDocRef = doc(db, 'Users', userCredential.user.uid);
       await setDoc(userDocRef, {
         fullName,
         email,
-        mobileNumber,
-        dateOfBirth,
+        phoneNumber: `${callingCode}${phoneNumber}`,
+        dateOfBirth: dateOfBirth ? dateOfBirth.toISOString() : null,
         createdAt: serverTimestamp(),
+        emailVerified: false,
       });
 
-      router.push('../(tabs)/MainScreen');
+      Alert.alert(
+        'Verification Email Sent',
+        'Please check your email and verify your account before logging in.',
+        [
+          {
+            text: 'OK',
+            onPress: () => router.push('../Screens/Login')
+          }
+        ]
+      );
     } catch (error) {
       console.error(error);
       Alert.alert('Signup Error', 'An error occurred during signup. Please try again.');
@@ -199,6 +217,103 @@ const Signup: React.FC = memo(() => {
     </View>
   );
 
+  const renderPhoneInput = () => (
+    <View style={{ marginBottom: 20, flexDirection: 'row', alignItems: 'center' }}>
+      <TouchableOpacity
+        style={{
+          backgroundColor: theme.primary,
+          borderRadius: 15,
+          padding: 15,
+          marginRight: 10,
+          flexDirection: 'row',
+          alignItems: 'center',
+        }}
+        onPress={() => setShowCountryPicker(true)}
+      >
+        <Text style={[commonTextStyle, { color: theme.text, fontSize: 16 }]}>{callingCode}</Text>
+        <Ionicons name="chevron-down" size={20} color={theme.text} style={{ marginLeft: 5 }} />
+      </TouchableOpacity>
+      <TextInput
+        style={[commonTextStyle, {
+          backgroundColor: theme.primary,
+          color: theme.text,
+          borderRadius: 15,
+          padding: 15,
+          fontSize: 16,
+          flex: 1,
+        }]}
+        value={phoneNumber}
+        onChangeText={setPhoneNumber}
+        placeholder="Phone Number"
+        placeholderTextColor="#6B7280"
+        keyboardType="phone-pad"
+        keyboardAppearance="dark"
+      />
+      <CountryPicker
+        visible={showCountryPicker}
+        onClose={() => setShowCountryPicker(false)}
+        onSelect={(country: Country) => {
+          setCountryCode(country.cca2);
+          setCallingCode(`+${country.callingCode[0]}`);
+          setShowCountryPicker(false);
+        }}
+        countryCode={countryCode}
+        withFilter
+        withFlag
+        withCallingCode
+        withEmoji
+        theme={{
+          backgroundColor: theme.secondary,
+          onBackgroundTextColor: theme.text,
+          fontSize: 16,
+          fontFamily: 'PoppinsSemiBold',
+          filterPlaceholderTextColor: '#6B7280',
+          activeOpacity: 0.7,
+          itemHeight: 50,
+          flagSize: 25,
+          }}
+        containerButtonStyle={{
+          // backgroundColor: theme.primary,
+          marginLeft:5,
+          borderRadius: 15,
+        }}
+      />
+    </View>
+  );
+
+  const renderDatePicker = () => (
+    <View style={{ marginBottom: 20 }}>
+      <TouchableOpacity
+        style={{
+          backgroundColor: theme.primary,
+          borderRadius: 15,
+          padding: 15,
+        }}
+        onPress={() => setShowDatePicker(true)}
+      >
+        <Text style={[commonTextStyle, { color: dateOfBirth ? theme.text : '#6B7280', fontSize: 16 }]}>
+          {dateOfBirth ? dateOfBirth.toLocaleDateString() : 'Date of Birth'}
+        </Text>
+      </TouchableOpacity>
+      {showDatePicker && (
+        <DateTimePicker
+          value={dateOfBirth || new Date()}
+          mode="date"
+          display="spinner"
+          onChange={(event, selectedDate) => {
+            setShowDatePicker(false);
+            if (selectedDate) {
+              setDateOfBirth(selectedDate);
+            }
+          }}
+          textColor={theme.text}
+          style={{ backgroundColor: theme.primary }}
+        />
+      )}
+    </View>
+  );
+
+
   const renderStage = () => {
     switch (stage) {
       case 1:
@@ -211,8 +326,8 @@ const Signup: React.FC = memo(() => {
       case 2:
         return (
           <>
-            {renderInput(mobileNumber, setMobileNumber, "Mobile Number")}
-            {renderInput(dateOfBirth, setDateOfBirth, "Date of Birth")}
+            {renderPhoneInput()}
+            {renderDatePicker()}
           </>
         );
       case 3:
@@ -237,7 +352,7 @@ const Signup: React.FC = memo(() => {
   };
 
   const renderContent = () => (
-    <View style={{ flexGrow: 1 }} className="px-4 py-6 md:px-6 md:py-10">
+    <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="px-4 py-6 md:px-6 md:py-10">
       <View className="flex-1 justify-center">
         <TypewriterText
           text="Create Account"
@@ -256,7 +371,7 @@ const Signup: React.FC = memo(() => {
             </TouchableOpacity>
           )}
           <TouchableOpacity
-            style={{ backgroundColor: theme.accent, padding: 15, borderRadius: 15 }}
+            style={{ backgroundColor: theme.accent, padding: 15, borderRadius: 15, flex: 1, marginLeft: stage > 1 ? 10 : 0 }}
             onPress={handleNext}
             disabled={loading}
           >
@@ -265,28 +380,14 @@ const Signup: React.FC = memo(() => {
             </Text>
           </TouchableOpacity>
         </View>
-        
-        <View>
-          <Text style={[commonTextStyle, { color: theme.text, textAlign: 'center', fontSize: 14, marginBottom: 15 }]}>
-            or sign up with
-          </Text>
-          <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
-            <TouchableOpacity style={{ backgroundColor: theme.primary, padding: 15, borderRadius: 30, marginRight: 20 }}>
-              <Ionicons name="logo-facebook" size={30} color={theme.text} />
-            </TouchableOpacity>
-            <TouchableOpacity style={{ backgroundColor: theme.primary, padding: 15, borderRadius: 30 }}>
-              <Ionicons name="logo-google" size={30} color={theme.text} />
-            </TouchableOpacity>
-          </View>
-        </View>
-        
+
         <TouchableOpacity onPress={() => router.push('../Screens/Login')}>
           <Text style={[commonTextStyle, { color: theme.text, textAlign: 'center', fontSize: 14, marginTop: 20 }]}>
             Already have an account? <Text style={{ color: theme.accent }}>Log In</Text>
           </Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </ScrollView>
   );
 
   return (
@@ -297,7 +398,7 @@ const Signup: React.FC = memo(() => {
         <Animated.View
           style={[
             backgroundStyle,
-            { position: 'absolute', top:-50, left: 0, right: 0, height: '125%', backgroundColor: theme.secondary },
+            { position: 'absolute', top: -50, left: 0, right: 0, height: '125%', backgroundColor: theme.secondary },
           ]}
           className="rounded-t-[50px] md:rounded-t-[80px]"
         />

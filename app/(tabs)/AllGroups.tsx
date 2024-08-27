@@ -60,12 +60,19 @@ const AllGroupsScreen: React.FC = memo(() => {
     <Animated.View
       entering={FadeInRight.delay(index * 100)}
       style={{ backgroundColor: theme.primary }}
-      className="rounded-2xl p-4 mb-2 flex-row items-center"
+      className="rounded-2xl p-4 mb-4 flex-row items-center justify-between"
     >
-      <Ionicons name={item.type === 'Home' ? 'home' : item.type === 'Trip' ? 'airplane' : 'people'} size={24} color={theme.accent} style={{ marginRight: 10 }} />
-      <View>
-        <Text style={{ color: theme.text }} className="text-lg font-semibold">{item.name}</Text>
-        <Text style={{ color: theme.text }}>{item.members.length} members</Text>
+      <View className="flex-row items-center">
+        <Ionicons name={item.type === 'Home' ? 'home' : item.type === 'Trip' ? 'airplane' : 'people'} size={24} color={theme.accent} style={{ marginRight: 10 }} />
+        <View>
+          <Text style={{ color: theme.text }} className="text-lg font-semibold">{item.name}</Text>
+          <Text style={{ color: theme.text }}>{item.members.length} members</Text>
+        </View>
+      </View>
+      <View style={{ backgroundColor: theme.accent }} className="rounded-lg p-2">
+        <Text style={{ color: theme.primary, fontFamily: 'PoppinsSemiBold' }} className="text-sm">
+          Code: {item.code}
+        </Text>
       </View>
     </Animated.View>
   );

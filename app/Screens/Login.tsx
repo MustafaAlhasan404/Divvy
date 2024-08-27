@@ -116,8 +116,18 @@ const Login: React.FC = () => {
     setLoading(true);
     try {
       const auth = Firebase.getAuth();
-      await Firebase.signInWithEmailAndPassword(auth, email, password);
-      router.push('../(tabs)/MainScreen');
+      const userCredential = await Firebase.signInWithEmailAndPassword(auth, email, password);
+      
+      if (!userCredential.user.emailVerified) {
+        await Firebase.sendEmailVerification(userCredential.user);
+        Alert.alert(
+          'Email Not Verified',
+          'Please verify your email before logging in. A new verification email has been sent.',
+          [{ text: 'OK', onPress: () => Firebase.signOut(auth) }]
+        );
+      } else {
+        router.push('../(tabs)/MainScreen');
+      }
     } catch (error) {
       console.error(error);
       Alert.alert('Login Error', 'Invalid email or password. Please try again.');

@@ -2,9 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { View, TouchableOpacity } from 'react-native';
+import { View, TouchableOpacity, Dimensions } from 'react-native';
 
 import { useTheme } from '../../ThemeContext';
+
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const IS_SMALL_DEVICE = SCREEN_HEIGHT < 700;
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -42,7 +45,7 @@ const TabBarButton: React.FC<TabBarButtonProps> = ({ route, isFocused, navigatio
     <TouchableOpacity onPress={onPress}>
       <Ionicons
         name={getIconName(route.name)}
-        size={28}
+        size={IS_SMALL_DEVICE ? 24 : 28}
         color={isFocused ? theme.accent : theme.text}
       />
     </TouchableOpacity>
@@ -53,8 +56,18 @@ const CustomTabBar: React.FC<BottomTabBarProps> = ({ state, navigation }) => {
   const theme = useTheme();
 
   return (
-    <View className="absolute bottom-0 left-0 right-0 h-20 items-center justify-center">
-      <View style={{backgroundColor: theme.secondary}} className="flex-row justify-around items-center rounded-full w-full h-28 pb-6">
+    <View 
+      className="absolute bottom-0 left-0 right-0 items-center justify-center" 
+      style={{ height: IS_SMALL_DEVICE ? 75 : 100 }}
+    >
+      <View 
+        className="flex-row justify-around items-center rounded-full w-full" 
+        style={{
+          backgroundColor: theme.secondary,
+          height: IS_SMALL_DEVICE ? 70 : 90,
+          paddingBottom: IS_SMALL_DEVICE ? 4 : 6
+        }}
+      >
         {state.routes.map((route, index) => (
           <TabBarButton
             key={route.key}
@@ -80,13 +93,14 @@ export default function TabLayout() {
           backgroundColor: theme.primary,
           elevation: 4,
           shadowOpacity: 0.3,
+          height: IS_SMALL_DEVICE ? 80 : 100,
         },
         headerTintColor: theme.text,
         headerTitleStyle: {
           fontWeight: 'bold',
-          fontSize: 18,
+          fontSize: IS_SMALL_DEVICE ? 16 : 18,
         },
-      }}
+      }}      
     >
       <Tabs.Screen
         name="MainScreen"
