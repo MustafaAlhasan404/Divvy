@@ -243,6 +243,7 @@ export const updateSettlement = async (settlementId: string, data: Partial<Settl
 export const calculateSettlements = async (groupId: string): Promise<Settlement[]> => {
   const expenses = await getGroupExpenses(groupId);
   const group = await getGroup(groupId);
+  const allSettlements = await getGroupSettlements(groupId);
   
   if (!group) throw new Error('Group not found');
 
@@ -251,6 +252,7 @@ export const calculateSettlements = async (groupId: string): Promise<Settlement[
     balances[memberId] = 0;
   });
 
+  // Calculate balances from expenses
   expenses.forEach(expense => {
     const totalAmount = expense.totalAmount;
     const perPersonAmount = totalAmount / group.members.length;
@@ -263,7 +265,17 @@ export const calculateSettlements = async (groupId: string): Promise<Settlement[
     });
   });
 
-  const settlements: Settlement[] = [];
+  // Adjust balances based on settled amounts
+  allSettlements.forEach(settlement => {
+    if (settlement.settled) {
+      balances[settlement.fromUserId] += settlement.amount;
+      balances[settlement.toUserId] -= settlement.amount;
+    }
+  });
+
+  const batch = writeBatch(db);
+  const updatedSettlements: Settlement[] = [];
+  const processedPairs: Set<string> = new Set();
 
   while (Object.values(balances).some(balance => Math.abs(balance) > 0.01)) {
     const debtor = Object.entries(balances).reduce((a, b) => a[1] < b[1] ? a : b)[0];
@@ -271,23 +283,27 @@ export const calculateSettlements = async (groupId: string): Promise<Settlement[
 
     const amount = Math.min(Math.abs(balances[debtor]), balances[creditor]);
 
-    const settlement: Settlement = {
-      id: '', // This will be set when the document is created in Firestore
-      groupId,
-      fromUserId: debtor,
-      toUserId: creditor,
-      amount,
-      settled: false,
-      createdAt: new Date(),
-    };
-
-    const settlementId = await createSettlement(settlement);
-    settlement.id = settlementId;
-    settlements.push(settlement);
+    const pairKey = `${debtor}-${creditor}`;
+    if (!processedPairs.has(pairKey) && amount > 0.01) {
+      const newSettlement: Omit<Settlement, 'id'> = {
+        groupId,
+        fromUserId: debtor,
+        toUserId: creditor,
+        amount,
+        settled: false,
+        createdAt: new Date(),
+      };
+      const settlementRef = doc(collection(db, 'Settlements'));
+      batch.set(settlementRef, newSettlement);
+      updatedSettlements.push({ ...newSettlement, id: settlementRef.id });
+      processedPairs.add(pairKey);
+    }
 
     balances[debtor] += amount;
     balances[creditor] -= amount;
   }
 
-  return settlements;
+  await batch.commit();
+
+  return updatedSettlements;
 };

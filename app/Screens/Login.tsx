@@ -1,5 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { Stack, useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import * as Firebase from 'firebase/auth';
 import React, { useState, useEffect, useRef } from 'react';
 import {
@@ -16,6 +18,7 @@ import {
   KeyboardAvoidingView,
   TextStyle,
   Alert,
+  Switch,
 } from 'react-native';
 
 import { useTheme } from '../../ThemeContext';
@@ -62,9 +65,20 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
+  const [rememberPassword, setRememberPassword] = useState<boolean>(false);
   const router = useRouter();
   const [animation] = useState(new Animated.Value(0));
   const [keyboardOffset] = useState(new Animated.Value(0));
+
+  const checkSavedCredentials = async () => {
+    const savedCredentials = await SecureStore.getItemAsync('userCredentials');
+    if (savedCredentials) {
+      const { email: savedEmail, password: savedPassword } = JSON.parse(savedCredentials);
+      setEmail(savedEmail);
+      setPassword(savedPassword);
+      setRememberPassword(true);
+    }
+  };
 
   useEffect(() => {
     Animated.timing(animation, {
@@ -82,7 +96,15 @@ const Login: React.FC = () => {
         keyboardWillHideListener.remove();
       };
     }
+
+    checkSavedCredentials();
   }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      checkSavedCredentials();
+    }, [])
+  );
 
   const keyboardWillShow = (event: KeyboardEvent) => {
     const keyboardHeight = event.endCoordinates.height;
@@ -126,7 +148,12 @@ const Login: React.FC = () => {
           [{ text: 'OK', onPress: () => Firebase.signOut(auth) }]
         );
       } else {
-        router.push('../(tabs)/MainScreen');
+        if (rememberPassword) {
+          await SecureStore.setItemAsync('userCredentials', JSON.stringify({ email, password }));
+        } else {
+          await SecureStore.deleteItemAsync('userCredentials');
+        }
+        router.replace('../(tabs)/MainScreen');
       }
     } catch (error) {
       console.error(error);
@@ -205,6 +232,15 @@ const Login: React.FC = () => {
               />
             </TouchableOpacity>
           </View>
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+          <Switch
+            value={rememberPassword}
+            onValueChange={setRememberPassword}
+            trackColor={{ false: "#767577", true: theme.accent }}
+            thumbColor={rememberPassword ? theme.primary : "#f4f3f4"}
+          />
+          <Text style={{ marginLeft: 8, color: theme.text }}>Remember Password</Text>
         </View>
         <TouchableOpacity
           style={{

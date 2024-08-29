@@ -42,7 +42,15 @@ const TabBarButton: React.FC<TabBarButtonProps> = ({ route, isFocused, navigatio
   };
 
   return (
-    <TouchableOpacity onPress={onPress}>
+    <TouchableOpacity
+      onPress={onPress}
+      style={{
+        padding: 15,
+        minWidth: 70,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
       <Ionicons
         name={getIconName(route.name)}
         size={IS_SMALL_DEVICE ? 24 : 28}

@@ -47,6 +47,7 @@ const Expenses: React.FC = memo(() => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [groups, setGroups] = useState<Group[]>([]);
   const [groupMembers, setGroupMembers] = useState<User[]>([]);
+  const [payerError, setPayerError] = useState('');
 
   useEffect(() => {
     Animated.timing(animation, {
@@ -109,8 +110,15 @@ const Expenses: React.FC = memo(() => {
       return;
     }
 
+    const totalAmount = parseFloat(amount);
+    const totalPaid = Object.values(payers).reduce((sum, value) => sum + value, 0);
+    
+    if (Math.abs(totalPaid - totalAmount) > 0.01) {
+      Alert.alert('Error', 'The sum of payer amounts must equal the total expense amount');
+      return;
+    }
+
     try {
-      const totalAmount = parseFloat(amount);
       const expenseData: Omit<Expense, 'id'> = {
         groupId: selectedGroup.id,
         paidBy: payers,
@@ -164,9 +172,10 @@ const Expenses: React.FC = memo(() => {
         placeholder={placeholder}
         placeholderTextColor="#6B7280"
         keyboardType={keyboardType}
+        keyboardAppearance="dark"
       />
     </View>
-  );
+  );  
 
   const renderGroupDropdown = () => (
     <View style={{ marginBottom: 20 }}>
@@ -266,8 +275,16 @@ const Expenses: React.FC = memo(() => {
     };
 
     const handleModalDone = () => {
-      setPayers(modalPayers);
-      setPayerModalVisible(false);
+      const totalPaid = Object.values(modalPayers).reduce((sum, value) => sum + value, 0);
+      const totalAmount = parseFloat(amount);
+
+      if (Math.abs(totalPaid - totalAmount) > 0.01) {
+        setPayerError(`The total paid (${totalPaid.toFixed(2)}) must equal the expense amount (${totalAmount.toFixed(2)})`);
+      } else {
+        setPayerError('');
+        setPayers(modalPayers);
+        setPayerModalVisible(false);
+      }
     };
 
     return (
@@ -275,60 +292,109 @@ const Expenses: React.FC = memo(() => {
         isVisible={isPayerModalVisible}
         onBackdropPress={() => setPayerModalVisible(false)}
         style={{ 
-          justifyContent: 'center',
-          alignItems: 'center',
-          margin: 0
+          margin: 0,
+          justifyContent: 'flex-end',
         }}
+        avoidKeyboard
       >
-        <View style={{ 
-          backgroundColor: theme.primary, 
-          padding: 20, 
-          borderRadius: 20,
-          width: '80%',
-          maxHeight: '80%'
-        }}>
-          <Text style={{ color: theme.text, fontSize: 20, fontWeight: 'bold', marginBottom: 15 }}>Select Payers</Text>
-          <ScrollView>
-            {groupMembers.map(member => (
-              <View key={member.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 10 }}>
-                <Text style={{ color: theme.text, fontSize: 16, flex: 1 }}>{member.fullName}</Text>
-                <TextInput
-                  style={{
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{ 
+            backgroundColor: theme.primary,
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+            maxHeight: '80%',
+          }}
+        >
+          <View style={{ padding: 20 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <Text style={{ color: theme.text, fontSize: 24, fontWeight: 'bold' }}>Select Payers</Text>
+              <TouchableOpacity onPress={() => setPayerModalVisible(false)}>
+                <Ionicons name="close" size={24} color={theme.text} />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={groupMembers}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => (
+                <View style={{ 
+                  flexDirection: 'row', 
+                  alignItems: 'center', 
+                  paddingVertical: 15,
+                  borderBottomWidth: 1,
+                  borderBottomColor: theme.secondary,
+                }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: theme.text, fontSize: 18, fontWeight: '600' }}>{item.fullName}</Text>
+                  </View>
+                  <View style={{ 
+                    flexDirection: 'row', 
+                    alignItems: 'center', 
                     backgroundColor: theme.secondary,
-                    color: theme.text,
                     borderRadius: 10,
-                    padding: 10,
-                    width: 100,
-                    textAlign: 'right',
-                  }}
-                  value={modalPayers[member.id]?.toString() || ''}
-                  onChangeText={(text) => updatePayerAmount(member.id, text)}
-                  placeholder="0.00"
-                  placeholderTextColor="#6B7280"
-                  keyboardType="numeric"
-                />
-              </View>
-            ))}
-          </ScrollView>
-          <TouchableOpacity
-            style={{ 
-              backgroundColor: theme.accent, 
-              padding: 15, 
-              borderRadius: 15, 
-              marginTop: 20 
-            }}
-            onPress={handleModalDone}
-          >
-            <Text style={{ 
-              color: theme.primary, 
-              textAlign: 'center', 
-              fontSize: 16, 
-              fontWeight: 'bold' 
-            }}>
-              Done
-            </Text>
-          </TouchableOpacity>
-        </View>
+                    paddingHorizontal: 10,
+                  }}>
+                    <Text style={{ color: theme.text, fontSize: 18, marginRight: 5 }}>$</Text>
+                    <TextInput
+                      style={{
+                        color: theme.text,
+                        fontSize: 18,
+                        width: 80,
+                        padding: 10,
+                        textAlign: 'right',
+                      }}
+                      value={modalPayers[item.id]?.toString() || ''}
+                      onChangeText={(text) => updatePayerAmount(item.id, text)}
+                      placeholder="0.00"
+                      placeholderTextColor="#6B7280"
+                      keyboardType="numeric"
+                    />
+                  </View>
+                </View>
+              )}
+            />
+{payerError ? (
+  <View style={{
+    backgroundColor: 'rgba(255, 0, 0, 0.1)',
+    borderRadius: 10,
+    padding: 15,
+    marginTop: 15,
+    marginBottom: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+  }}>
+    <Ionicons name="warning-outline" size={24} color="red" style={{ marginRight: 10 }} />
+    <Text style={{ 
+      color: 'red', 
+      fontSize: 16, 
+      fontWeight: '600',
+      flex: 1,
+    }}>
+      {payerError}
+    </Text>
+  </View>
+) : null}
+
+            <TouchableOpacity
+              style={{ 
+                backgroundColor: theme.accent,
+                padding: 15,
+                borderRadius: 15,
+                marginTop: 20,
+              }}
+              onPress={handleModalDone}
+            >
+              <Text style={{ 
+                color: theme.primary,
+                textAlign: 'center',
+                fontSize: 18,
+                fontWeight: 'bold',
+              }}>
+                Confirm
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
     );
   };
@@ -370,7 +436,7 @@ const Expenses: React.FC = memo(() => {
             )}
           />
         </View>
-      </Modal>
+        </Modal>
     );
   };
 
@@ -431,17 +497,17 @@ const Expenses: React.FC = memo(() => {
           </Animated.View>
         ) : (
           <KeyboardAvoidingView
-          behavior="padding"
-          className="flex-1"
-        >
-          {renderContent()}
-        </KeyboardAvoidingView>
-      )}
-      <PayerModal />
-      <GroupModal />
-    </SafeAreaView>
-  </>
-);
+            behavior="padding"
+            className="flex-1"
+          >
+            {renderContent()}
+          </KeyboardAvoidingView>
+        )}
+        <PayerModal />
+        <GroupModal />
+      </SafeAreaView>
+    </>
+  );
 });
 
 export default Expenses;

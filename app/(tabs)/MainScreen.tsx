@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useFocusEffect } from 'expo-router';
 import { onSnapshot, query, collection, where, doc, DocumentSnapshot } from 'firebase/firestore';
-import React, { useState, memo, useEffect, useRef } from 'react';
+import React, { useState, memo, useEffect, useRef, useCallback } from 'react';
 import {
     View,
     Text,
@@ -11,6 +11,7 @@ import {
     TextStyle,
     FlatList,
     Dimensions,
+    BackHandler,
 } from 'react-native';
 import Animated, {
     FadeInRight,
@@ -91,6 +92,18 @@ const MainScreen: React.FC = memo(() => {
     const [totalOwed, setTotalOwed] = useState(0);
     const [totalOwedToYou, setTotalOwedToYou] = useState(0);
 
+    useFocusEffect(
+        useCallback(() => {
+            const onBackPress = () => {
+                return true;
+            };
+
+            const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+
+            return () => subscription.remove();
+        }, [])
+    );
+
     useEffect(() => {
         animation.value = withTiming(1, { duration: 900 });
         const user = auth.currentUser;
@@ -119,7 +132,7 @@ const MainScreen: React.FC = memo(() => {
                     const expensesQuery = query(collection(db, 'Expenses'), where('groupId', '==', group.id));
                     const unsubscribeExpenses = onSnapshot(expensesQuery, async (expensesSnapshot) => {
                         const expenses = expensesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Expense));
-                        
+
                         const groupActivities = expenses.map(expense => ({
                             id: expense.id,
                             description: expense.description,
@@ -131,7 +144,7 @@ const MainScreen: React.FC = memo(() => {
 
                         allActivities = [...allActivities, ...groupActivities];
                         allActivities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                        setRecentActivity(allActivities.slice(0, 2));
+                        setRecentActivity(allActivities.slice(0, 3));
 
                         const settlements = await calculateSettlements(group.id);
                         const userSettlements = settlements.filter(s => s.fromUserId === user.uid);
@@ -220,7 +233,7 @@ const MainScreen: React.FC = memo(() => {
 
     return (
         <>
-            <Stack.Screen options={{ headerShown: false }} />
+            <Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />
             <StatusBar barStyle="light-content" backgroundColor={theme.primary} />
             <SafeAreaView style={{ flex: 1, backgroundColor: theme.primary }}>
                 <Animated.View
@@ -242,7 +255,7 @@ const MainScreen: React.FC = memo(() => {
                                     fontFamily: 'PoppinsSemiBold',
                                     marginBottom: 6
                                 }}
-                                className="text-xl md:text-2xl font-bold mt-2"
+                                className="text-xl md:text-2xl font-bold pt-5"
                             />
                         )}
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }} className='mt-2'>
@@ -260,7 +273,7 @@ const MainScreen: React.FC = memo(() => {
                             </View>
                         </View>
                     </View>
-    
+
                     <View className="flex-row justify-between mb-4">
                         <TouchableOpacity
                             className="bg-accent rounded-2xl flex-1 mr-2 p-3"
@@ -281,7 +294,7 @@ const MainScreen: React.FC = memo(() => {
                             </Text>
                         </TouchableOpacity>
                     </View>
-    
+
                     <Text className="text-base font-semibold mb-2" style={{ color: theme.accent }}>Your Groups</Text>
                     <FlatList
                         data={groups}
@@ -332,7 +345,7 @@ const MainScreen: React.FC = memo(() => {
                         )}
                     />
                 </View>
-                </SafeAreaView>
+            </SafeAreaView>
         </>
     );
 });

@@ -186,13 +186,15 @@ const SettleUp: React.FC = () => {
   const handleSettle = useCallback(async (settlement: Settlement) => {
     try {
       await updateSettlement(settlement.id, { settled: true });
-      await fetchSettlements();
+      setSettlements(prevSettlements => 
+        prevSettlements.filter(s => s.id !== settlement.id)
+      );
       Alert.alert('Success', 'Settlement marked as completed');
     } catch (error) {
       console.error('Error settling up:', error);
       Alert.alert('Error', 'Failed to settle up. Please try again.');
     }
-  }, [fetchSettlements]);
+  }, []);
 
   const renderSettlement = useCallback(({ item }: { item: Settlement }) => {
     const currentUserId = auth.currentUser?.uid;
@@ -207,14 +209,12 @@ const SettleUp: React.FC = () => {
         <Text style={styles.settlementAmount}>
           ${item.amount.toFixed(2)}
         </Text>
-        {!item.settled && (
-          <TouchableOpacity
-            style={styles.settleButton}
-            onPress={() => handleSettle(item)}
-          >
-            <Text style={styles.settleButtonText}>Settle Up</Text>
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          style={styles.settleButton}
+          onPress={() => handleSettle(item)}
+        >
+          <Text style={styles.settleButtonText}>Settle Up</Text>
+        </TouchableOpacity>
       </View>
     );
   }, [users, handleSettle, styles]);
