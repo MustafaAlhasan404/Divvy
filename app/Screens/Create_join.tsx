@@ -180,7 +180,7 @@ const Create_join: React.FC = memo(() => {
               borderRadius: 15,
               padding: 15,
               fontSize: 16,
-              fontFamily: 'PoppinsRegular',
+              fontFamily: 'PoppinsSemiBold',
               borderWidth: 1,
               borderColor: theme.accent,
             }}

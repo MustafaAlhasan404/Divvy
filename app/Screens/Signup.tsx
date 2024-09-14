@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Stack, useRouter } from 'expo-router';
 import * as Firebase from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp} from 'firebase/firestore';
 import React, { useState, memo, useEffect, useRef } from 'react';
 import {
   Animated,
@@ -24,6 +24,7 @@ import CountryPicker, { Country, CountryCode } from 'react-native-country-picker
 
 import { useTheme } from '../../ThemeContext';
 import { db } from '../../firebaseConfig';
+import { isUsernameAvailable } from '../../firestore';
 
 const commonTextStyle: TextStyle = {
   fontFamily: 'PoppinsSemiBold',
@@ -68,6 +69,7 @@ const TypewriterText: React.FC<{ text: string; delay?: number; style?: TextStyle
 const Signup: React.FC = memo(() => {
   const theme = useTheme();
   const [fullName, setFullName] = useState<string>('');
+  const [username, setUsername] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [countryCode, setCountryCode] = useState<CountryCode>('US');
   const [callingCode, setCallingCode] = useState<string>('+1');
@@ -139,6 +141,13 @@ const Signup: React.FC = memo(() => {
 
     setLoading(true);
     try {
+      const isAvailable = await isUsernameAvailable(username);
+      if (!isAvailable) {
+        Alert.alert('Error', 'Username is already taken');
+        setLoading(false);
+        return;
+      }
+
       const auth = Firebase.getAuth();
       const userCredential = await Firebase.createUserWithEmailAndPassword(auth, email, password);
       await Firebase.updateProfile(userCredential.user, {
@@ -151,6 +160,7 @@ const Signup: React.FC = memo(() => {
       await setDoc(userDocRef, {
         fullName,
         email,
+        username,
         phoneNumber: `${callingCode}${phoneNumber}`,
         dateOfBirth: dateOfBirth ? dateOfBirth.toISOString() : null,
         createdAt: serverTimestamp(),
@@ -271,10 +281,9 @@ const Signup: React.FC = memo(() => {
           activeOpacity: 0.7,
           itemHeight: 50,
           flagSize: 25,
-          }}
+        }}
         containerButtonStyle={{
-          // backgroundColor: theme.primary,
-          marginLeft:5,
+          marginLeft: 5,
           borderRadius: 15,
         }}
       />
@@ -313,13 +322,13 @@ const Signup: React.FC = memo(() => {
     </View>
   );
 
-
   const renderStage = () => {
     switch (stage) {
       case 1:
         return (
           <>
             {renderInput(fullName, setFullName, "Full Name")}
+            {renderInput(username, setUsername, "Username")}
             {renderInput(email, setEmail, "Email")}
           </>
         );

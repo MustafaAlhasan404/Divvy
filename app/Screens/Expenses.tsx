@@ -252,9 +252,11 @@ const Expenses: React.FC = memo(() => {
           mode="date"
           display="spinner"
           onChange={(event, selectedDate) => {
-            setShowDatePicker(false);
-            if (selectedDate) {
-              setDate(selectedDate);
+            if (event.type === 'set') {
+              setDate(selectedDate || date);
+              setShowDatePicker(Platform.OS === 'ios');
+            } else {
+              setShowDatePicker(false);
             }
           }}
           textColor={theme.text}
@@ -262,7 +264,7 @@ const Expenses: React.FC = memo(() => {
         />
       )}
     </View>
-  );
+  );  
 
   const PayerModal = () => {
     const [modalPayers, setModalPayers] = useState<{ [key: string]: number }>(payers);

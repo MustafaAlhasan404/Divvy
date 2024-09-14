@@ -92,7 +92,7 @@ const CreateNewGroup: React.FC = memo(() => {
           borderRadius: 15,
           padding: 15,
           fontSize: 16,
-          fontFamily: 'PoppinsRegular',
+          fontFamily: 'PoppinsSemiBold',
           borderWidth: 1,
           borderColor: theme.accent,
         }}
@@ -151,7 +151,7 @@ const CreateNewGroup: React.FC = memo(() => {
             padding: 15,
             marginRight: 10,
             fontSize: 16,
-            fontFamily: 'PoppinsRegular',
+            fontFamily: 'PoppinsSemiBold',
             borderWidth: 1,
             borderColor: theme.accent,
           }}
@@ -180,7 +180,7 @@ const CreateNewGroup: React.FC = memo(() => {
       <Text style={{ color: theme.text, fontSize: 16, fontFamily: 'PoppinsSemiBold', marginBottom: 8 }}>Members</Text>
       {members.map((member, index) => (
         <View key={index} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <Text style={{ color: theme.text, fontSize: 16, fontFamily: 'PoppinsRegular' }}>{member.name}</Text>
+          <Text style={{ color: theme.text, fontSize: 16, fontFamily: 'PoppinsSemiBold' }}>{member.name}</Text>
           <TouchableOpacity onPress={() => handleRemoveMember(index)}>
             <Ionicons name="close-circle" size={28} color={theme.accent} />
           </TouchableOpacity>

@@ -8,6 +8,7 @@ export interface User {
   fullName: string;
   email: string;
   phoneNumber?: string;
+  username: string;
 }
 
 export interface Group {
@@ -100,6 +101,12 @@ export const searchUser = async (searchTerm: string): Promise<{ id: string; name
     return { id: userDoc.id, name: userDoc.data().fullName };
   }
   return null;
+};
+
+export const isUsernameAvailable = async (username: string): Promise<boolean> => {
+  const usersQuery = query(collection(db, 'Users'), where('username', '==', username));
+  const querySnapshot = await getDocs(usersQuery);
+  return querySnapshot.empty;
 };
 
 // CRUD Operations for Groups

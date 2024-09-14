@@ -12,6 +12,7 @@ import {
     FlatList,
     Dimensions,
     BackHandler,
+    Platform,
 } from 'react-native';
 import Animated, {
     FadeInRight,
@@ -92,14 +93,12 @@ const MainScreen: React.FC = memo(() => {
     const [totalOwed, setTotalOwed] = useState(0);
     const [totalOwedToYou, setTotalOwedToYou] = useState(0);
 
+    const androidPadding = Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0;
+
     useFocusEffect(
         useCallback(() => {
-            const onBackPress = () => {
-                return true;
-            };
-
+            const onBackPress = () => true;
             const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-
             return () => subscription.remove();
         }, [])
     );
@@ -235,7 +234,7 @@ const MainScreen: React.FC = memo(() => {
         <>
             <Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />
             <StatusBar barStyle="light-content" backgroundColor={theme.primary} />
-            <SafeAreaView style={{ flex: 1, backgroundColor: theme.primary }}>
+            <SafeAreaView style={{ flex: 1, backgroundColor: theme.primary, paddingTop: androidPadding }}>
                 <Animated.View
                     style={[
                         backgroundStyle,
@@ -331,8 +330,7 @@ const MainScreen: React.FC = memo(() => {
                                     scrollEnabled={false}
                                     ListFooterComponent={() => (
                                         <TouchableOpacity
-                                            className="bg-primary rounded-2xl p-3 mt-2"
-                                            style={{ backgroundColor: theme.primary }}
+                                            className="bg-primary rounded-2xl p-3 mt-2"                                            style={{ backgroundColor: theme.primary }}
                                             onPress={() => router.push('/(tabs)/Activities')}
                                         >
                                             <Text className="text-center text-sm font-semibold" style={{ color: theme.text }}>
@@ -351,3 +349,4 @@ const MainScreen: React.FC = memo(() => {
 });
 
 export default MainScreen;
+

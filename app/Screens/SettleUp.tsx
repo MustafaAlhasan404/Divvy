@@ -91,7 +91,7 @@ const SettleUp: React.FC = () => {
       color: theme.text,
       textAlign: 'center',
       marginTop: 20,
-      fontFamily: 'PoppinsRegular',
+      fontFamily: 'PoppinsSemiBold',
     },
     modalContainer: {
       flex: 1,
@@ -118,7 +118,7 @@ const SettleUp: React.FC = () => {
     modalItemText: {
       color: theme.text,
       fontSize: 16,
-      fontFamily: 'PoppinsRegular',
+      fontFamily: 'PoppinsSemiBold',
     },
     searchInput: {
       height: 40,

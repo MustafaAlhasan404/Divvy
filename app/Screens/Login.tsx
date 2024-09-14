@@ -3,6 +3,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Stack, useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import * as Firebase from 'firebase/auth';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Animated,
@@ -22,6 +23,7 @@ import {
 } from 'react-native';
 
 import { useTheme } from '../../ThemeContext';
+import { db } from '../../firebaseConfig';
 
 const TypewriterText: React.FC<{ text: string; delay?: number; style?: TextStyle }> = ({ text, delay = 100, style }) => {
   const [displayedText, setDisplayedText] = useState('');
@@ -61,7 +63,7 @@ const TypewriterText: React.FC<{ text: string; delay?: number; style?: TextStyle
 
 const Login: React.FC = () => {
   const theme = useTheme();
-  const [email, setEmail] = useState<string>('');
+  const [identifier, setIdentifier] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
@@ -73,8 +75,8 @@ const Login: React.FC = () => {
   const checkSavedCredentials = async () => {
     const savedCredentials = await SecureStore.getItemAsync('userCredentials');
     if (savedCredentials) {
-      const { email: savedEmail, password: savedPassword } = JSON.parse(savedCredentials);
-      setEmail(savedEmail);
+      const { identifier: savedIdentifier, password: savedPassword } = JSON.parse(savedCredentials);
+      setIdentifier(savedIdentifier);
       setPassword(savedPassword);
       setRememberPassword(true);
     }
@@ -138,7 +140,20 @@ const Login: React.FC = () => {
     setLoading(true);
     try {
       const auth = Firebase.getAuth();
-      const userCredential = await Firebase.signInWithEmailAndPassword(auth, email, password);
+      let userCredential;
+
+      if (identifier.includes('@')) {
+        userCredential = await Firebase.signInWithEmailAndPassword(auth, identifier, password);
+      } else {
+        const usersQuery = query(collection(db, 'Users'), where('username', '==', identifier));
+        const querySnapshot = await getDocs(usersQuery);
+        if (querySnapshot.empty) {
+          throw new Error('User not found');
+        }
+        const userDoc = querySnapshot.docs[0];
+        const userEmail = userDoc.data().email;
+        userCredential = await Firebase.signInWithEmailAndPassword(auth, userEmail, password);
+      }
       
       if (!userCredential.user.emailVerified) {
         await Firebase.sendEmailVerification(userCredential.user);
@@ -149,7 +164,7 @@ const Login: React.FC = () => {
         );
       } else {
         if (rememberPassword) {
-          await SecureStore.setItemAsync('userCredentials', JSON.stringify({ email, password }));
+          await SecureStore.setItemAsync('userCredentials', JSON.stringify({ identifier, password }));
         } else {
           await SecureStore.deleteItemAsync('userCredentials');
         }
@@ -157,7 +172,7 @@ const Login: React.FC = () => {
       }
     } catch (error) {
       console.error(error);
-      Alert.alert('Login Error', 'Invalid email or password. Please try again.');
+      Alert.alert('Login Error', 'Invalid username/email or password. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -187,14 +202,14 @@ const Login: React.FC = () => {
               fontSize: 16,
               fontFamily: 'PoppinsSemiBold',
             }}
-            value={email}
-            onChangeText={setEmail}
+            value={identifier}
+            onChangeText={setIdentifier}
             keyboardType="email-address"
             autoCapitalize="none"
-            placeholder="Username Or Email"
+            placeholder="Username or Email"
             placeholderTextColor="#6B7280"
             keyboardAppearance="dark"
-            accessibilityLabel="Email or Username Input"
+            accessibilityLabel="Username or Email Input"
             accessibilityRole="text"
           />
         </View>
