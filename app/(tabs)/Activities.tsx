@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Ionicons } from '@expo/vector-icons';
 import { Stack, useRouter } from 'expo-router';
 import React, { useState, useEffect, useCallback } from 'react';
@@ -10,6 +9,7 @@ import {
   StatusBar,
   FlatList,
   ActivityIndicator,
+  TextInput,
 } from 'react-native';
 import Animated, {
   FadeInRight,
@@ -21,7 +21,7 @@ import Animated, {
 
 import { useTheme } from '../../ThemeContext';
 import { auth } from '../../firebaseConfig';
-import { getUserGroups, getGroupExpenses, Expense } from '../../firestore';
+import { getUserGroups, getGroupExpenses } from '../../firestore';
 
 interface Activity {
   id: string;
@@ -38,6 +38,7 @@ const AllRecentActivitiesScreen: React.FC = () => {
   const animation = useSharedValue(0);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     animation.value = withTiming(1, { duration: 900 });
@@ -65,7 +66,6 @@ const AllRecentActivitiesScreen: React.FC = () => {
           allExpenses.push(...groupActivities);
         }
 
-        // Sort activities by date (most recent first)
         allExpenses.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         setActivities(allExpenses);
       } catch (error) {
@@ -78,13 +78,10 @@ const AllRecentActivitiesScreen: React.FC = () => {
 
   const formatDate = (date: any): string => {
     if (date && typeof date.toDate === 'function') {
-      // Firestore Timestamp
       return date.toDate().toDateString();
     } else if (date && typeof date === 'object' && date.seconds) {
-      // Firestore Timestamp stored as object
       return new Date(date.seconds * 1000).toDateString();
     } else if (date && !isNaN(Date.parse(date))) {
-      // Date string
       return new Date(date).toDateString();
     }
     return 'Unknown Date';
@@ -125,6 +122,11 @@ const AllRecentActivitiesScreen: React.FC = () => {
     </Animated.View>
   ), [theme]);
 
+  const filteredActivities = activities.filter(activity => 
+    activity.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    activity.groupName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.primary }}>
       <StatusBar barStyle="light-content" backgroundColor={theme.primary} />
@@ -154,16 +156,36 @@ const AllRecentActivitiesScreen: React.FC = () => {
         className="rounded-b-[50px] md:rounded-b-[80px]"
       />
       <View className="flex-1 px-4 py-20 md:px-6 md:py-10">
+        <View style={{ backgroundColor: theme.primary }} className="rounded-2xl p-4 mb-4 shadow-md">
+          <View style={{ backgroundColor: theme.primary }} className="rounded-2xl flex-row items-center">
+            <Ionicons name="search" size={24} color={theme.text} style={{ marginLeft: 15 }} />
+            <TextInput
+              style={{ color: theme.accent, flex: 1, paddingVertical: 12, paddingHorizontal: 10 }}
+              className="rounded-2xl"
+              placeholder="Search activities"
+              placeholderTextColor={theme.text}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              keyboardAppearance="dark"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} style={{ padding: 10 }}>
+                <Ionicons name="close-circle" size={24} color={theme.text} />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
         {loading ? (
           <ActivityIndicator size="large" color={theme.accent} />
         ) : (
           <FlatList
-            data={activities}
+            data={filteredActivities}
             renderItem={renderActivityItem}
             keyExtractor={item => item.id}
             ListEmptyComponent={
-              <Text style={{ color: theme.text, textAlign: 'center' }}>No recent activities</Text>
+              <Text style={{ color: theme.text, textAlign: 'center' }}>No activities found</Text>
             }
+            showsVerticalScrollIndicator={false}
           />
         )}
       </View>

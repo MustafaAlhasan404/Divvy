@@ -1,5 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import { Stack, useRouter } from 'expo-router';
+import { sendPasswordResetEmail } from 'firebase/auth';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -9,6 +12,8 @@ import {
   StatusBar,
   ScrollView,
   Switch,
+  Alert,
+  StyleSheet,
 } from 'react-native';
 import Animated, {
   FadeInRight,
@@ -16,11 +21,70 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   interpolate,
+  withRepeat,
+  Easing,
 } from 'react-native-reanimated';
 
 import { useTheme } from '../../ThemeContext';
 import { auth } from '../../firebaseConfig';
 import { getUser, User } from '../../firestore';
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingLogo: {
+    width: 100,
+    height: 100,
+    resizeMode: 'contain',
+  },
+  loadingText: {
+    color: 'white',
+    fontSize: 16,
+    marginTop: 10,
+    fontFamily: 'PoppinsSemiBold',
+  },
+});
+
+const LoadingOverlay: React.FC = () => {
+  const opacity = useSharedValue(0.5);
+  const translateY = useSharedValue(0);
+
+  useEffect(() => {
+    opacity.value = withRepeat(
+      withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true
+    );
+
+    translateY.value = withRepeat(
+      withTiming(-10, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
+      -1,
+      true
+    );
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: translateY.value }],
+  }));
+
+  return (
+    <BlurView intensity={95} tint="dark" style={StyleSheet.absoluteFill}>
+      <View style={styles.loadingContainer}>
+        <Animated.Image
+          source={require('../../assets/app-logo-white.png')}
+          style={[styles.loadingLogo, animatedStyle]}
+        />
+        <Animated.Text style={[styles.loadingText, animatedStyle]}>
+          Sending password reset email...
+        </Animated.Text>
+      </View>
+    </BlurView>
+  );
+};
 
 const ProfileSettings: React.FC = () => {
   const theme = useTheme();
@@ -30,6 +94,8 @@ const ProfileSettings: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = useState(true);
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     animation.value = withTiming(1, { duration: 900 });
@@ -41,6 +107,7 @@ const ProfileSettings: React.FC = () => {
     if (currentUser) {
       const userData = await getUser(currentUser.uid);
       setUser(userData);
+      setEmail(currentUser.email || '');
     }
   };
 
@@ -80,6 +147,28 @@ const ProfileSettings: React.FC = () => {
     </View>
   );
 
+  const handleChangePassword = async () => {
+    if (!email) {
+      Alert.alert('Error', 'No email address associated with this account');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      Alert.alert(
+        'Password Reset Email Sent',
+        'Please check your email for instructions to reset your password.',
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'Failed to send password reset email. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.primary }}>
       <StatusBar barStyle="light-content" backgroundColor={theme.primary} />
@@ -117,12 +206,25 @@ const ProfileSettings: React.FC = () => {
           </>
         ), 100)}
 
-        {renderSection("App Settings", (
+        {renderSection("Security", (
+          <>
+            <TouchableOpacity
+              style={{ backgroundColor: theme.accent, padding: 10, borderRadius: 10, marginTop: 10 }}
+              onPress={handleChangePassword}
+            >
+              <Text style={[{ color: theme.primary, textAlign: 'center', fontSize: 16 }, textStyle]}>
+                Change Password
+              </Text>
+            </TouchableOpacity>
+          </>
+        ), 200)}
+
+        {/* {renderSection("App Settings", (
           <>
             {renderSwitchItem("Notifications", notificationsEnabled, setNotificationsEnabled)}
             {renderSwitchItem("Dark Mode", darkModeEnabled, setDarkModeEnabled)}
           </>
-        ), 200)}
+        ), 300)} */}
 
         {renderSection("Help & Support", (
           <>
@@ -135,7 +237,7 @@ const ProfileSettings: React.FC = () => {
               <Ionicons name="chevron-forward" size={20} color={theme.accent} />
             </TouchableOpacity>
           </>
-        ), 300)}
+        ), 400)}
 
         <TouchableOpacity
           style={{ backgroundColor: theme.negative, padding: 14, borderRadius: 12, marginTop: 20, marginBottom: 16 }}
@@ -149,6 +251,11 @@ const ProfileSettings: React.FC = () => {
           </Text>
         </TouchableOpacity>
       </ScrollView>
+      {loading && (
+        <View style={StyleSheet.absoluteFill}>
+          <LoadingOverlay />
+        </View>
+      )}
     </SafeAreaView>
   );
 };

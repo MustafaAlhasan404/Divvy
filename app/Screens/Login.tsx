@@ -19,6 +19,7 @@ import {
   KeyboardAvoidingView,
   TextStyle,
   Alert,
+  Image,
   Switch,
 } from 'react-native';
 
@@ -181,17 +182,24 @@ const Login: React.FC = () => {
   const renderContent = () => (
     <View style={{ flexGrow: 1 }} className="px-4 py-6 md:px-6 md:py-10">
       <View className="flex-1 justify-center">
-        <TypewriterText
-          text="Welcome"
-          style={{
-            color: theme.text,
-            fontSize: 36,
-            fontWeight: 'bold',
-            marginBottom: 30,
-            textAlign: 'center',
-            fontFamily: 'PoppinsSemiBold',
-          }}
-        />
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 }}>
+          <View className="px-2" style={{ flex: 1 }}>
+            <TypewriterText
+              text="Login In"
+              style={{
+                color: theme.text,
+                fontSize: 36,
+                fontWeight: 'bold',
+                fontFamily: 'PoppinsSemiBold',
+              }}
+            />
+          </View>
+          <Image
+            source={require('../../assets/app-logo-white.png')}
+            style={{ width: 60, height: 60 }}
+            resizeMode="contain"
+          />
+        </View>
         <View style={{ marginBottom: 20 }}>
           <TextInput
             style={{
@@ -298,7 +306,7 @@ const Login: React.FC = () => {
         </TouchableOpacity>
       </View>
     </View>
-  );
+  )  
 
   return (
     <>

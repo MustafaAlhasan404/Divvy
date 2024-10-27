@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import { BlurView } from 'expo-blur';
 import { Stack, useRouter, useFocusEffect } from 'expo-router';
 import { onSnapshot, query, collection, where, doc, DocumentSnapshot } from 'firebase/firestore';
-import React, { useState, memo, useEffect, useRef, useCallback } from 'react';
+import React, { useState, memo, useCallback } from 'react';
 import {
     View,
     Text,
@@ -13,6 +14,7 @@ import {
     Dimensions,
     BackHandler,
     Platform,
+    StyleSheet,
 } from 'react-native';
 import Animated, {
     FadeInRight,
@@ -21,14 +23,47 @@ import Animated, {
     useAnimatedStyle,
     withTiming,
     interpolate,
+    withRepeat,
+    Easing,
 } from 'react-native-reanimated';
 
 import { useTheme } from '../../ThemeContext';
 import { auth, db } from '../../firebaseConfig';
 import { Group, Expense, calculateSettlements } from '../../firestore';
 
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const IS_SMALL_DEVICE = SCREEN_HEIGHT < 700;
+const { width, height } = Dimensions.get('window');
+const guidelineBaseWidth = 375;
+const guidelineBaseHeight = 812;
+
+const scale = (size: number) => (width / guidelineBaseWidth) * size * 0.95;
+const verticalScale = (size: number) => (height / guidelineBaseHeight) * size * 0.95;
+const moderateScale = (size: number, factor = 0.5) => size + (scale(size) - size) * factor;
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+    },
+    loadingText: {
+        color: 'white',
+        fontSize: moderateScale(16),
+        marginTop: verticalScale(10),
+        fontFamily: 'PoppinsSemiBold',
+    },    
+    content: {
+        flex: 1,
+        padding: moderateScale(15),
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    loadingLogo: {
+        width: 100,
+        height: 100,
+        resizeMode: 'contain',
+    },
+});
 
 interface TypewriterTextProps {
     text: string;
@@ -41,9 +76,9 @@ const TypewriterText: React.FC<TypewriterTextProps> = memo(({ text, delay = 100,
     const [displayedText, setDisplayedText] = useState('');
     const [showCursor, setShowCursor] = useState(true);
     const [isTypingComplete, setIsTypingComplete] = useState(false);
-    const cursorRef = useRef<NodeJS.Timeout | null>(null);
+    const cursorRef = React.useRef<NodeJS.Timeout | null>(null);
 
-    useEffect(() => {
+    React.useEffect(() => {
         let i = 0;
         const typingEffect = setInterval(() => {
             if (i < text.length) {
@@ -82,6 +117,44 @@ interface Activity {
     groupName: string;
 }
 
+const LoadingOverlay: React.FC = () => {
+    const opacity = useSharedValue(0.5);
+    const translateY = useSharedValue(0);
+
+    React.useEffect(() => {
+        opacity.value = withRepeat(
+            withTiming(1, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
+            -1,
+            true
+        );
+
+        translateY.value = withRepeat(
+            withTiming(-10, { duration: 1000, easing: Easing.inOut(Easing.ease) }),
+            -1,
+            true
+        );
+    }, []);
+
+    const animatedStyle = useAnimatedStyle(() => ({
+        opacity: opacity.value,
+        transform: [{ translateY: translateY.value }],
+    }));
+
+    return (
+        <BlurView intensity={95} tint="dark" style={StyleSheet.absoluteFill}>
+            <View style={styles.loadingContainer}>
+                <Animated.Image
+                    source={require('../../assets/app-logo-white.png')}
+                    style={[styles.loadingLogo, animatedStyle]}
+                />
+                <Animated.Text style={[styles.loadingText, animatedStyle]}>
+                    Divvying up...
+                </Animated.Text>
+            </View>
+        </BlurView>
+    );
+};
+
 const MainScreen: React.FC = memo(() => {
     const theme = useTheme();
     const router = useRouter();
@@ -92,6 +165,9 @@ const MainScreen: React.FC = memo(() => {
     const [isUserDataLoaded, setIsUserDataLoaded] = useState(false);
     const [totalOwed, setTotalOwed] = useState(0);
     const [totalOwedToYou, setTotalOwedToYou] = useState(0);
+    const [, setIsLoading] = useState(true);
+    const [showBlur, setShowBlur] = useState(true);
+    const [showWelcomeText, setShowWelcomeText] = useState(false);
 
     const androidPadding = Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0;
 
@@ -99,11 +175,14 @@ const MainScreen: React.FC = memo(() => {
         useCallback(() => {
             const onBackPress = () => true;
             const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+            setShowBlur(true);
+            setShowWelcomeText(false);
+            fetchData();
             return () => subscription.remove();
         }, [])
     );
 
-    useEffect(() => {
+    const fetchData = useCallback(async () => {
         animation.value = withTiming(1, { duration: 900 });
         const user = auth.currentUser;
         if (user) {
@@ -111,10 +190,11 @@ const MainScreen: React.FC = memo(() => {
             const unsubscribeUser = onSnapshot(userDocRef, (docSnapshot: DocumentSnapshot) => {
                 if (docSnapshot.exists()) {
                     const userData = docSnapshot.data();
-                    setUserName(userData?.fullName || 'User');
+                    setUserName(userData?.username || 'User');  // Changed from fullName to username
                 }
                 setIsUserDataLoaded(true);
             });
+            
 
             const groupsQuery = query(collection(db, 'Groups'), where('members', 'array-contains', user.uid));
             const unsubscribeGroups = onSnapshot(groupsQuery, (snapshot) => {
@@ -143,7 +223,7 @@ const MainScreen: React.FC = memo(() => {
 
                         allActivities = [...allActivities, ...groupActivities];
                         allActivities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                        setRecentActivity(allActivities.slice(0, 3));
+                        setRecentActivity(allActivities.slice(0, 2));
 
                         const settlements = await calculateSettlements(group.id);
                         const userSettlements = settlements.filter(s => s.fromUserId === user.uid);
@@ -156,6 +236,13 @@ const MainScreen: React.FC = memo(() => {
 
                     unsubscribeActivities.push(unsubscribeExpenses);
                 });
+
+                setIsLoading(false);
+                
+                setTimeout(() => {
+                    setShowBlur(false);
+                    setTimeout(() => setShowWelcomeText(true), 100);
+                }, 500);
 
                 return () => {
                     unsubscribeUser();
@@ -198,13 +285,13 @@ const MainScreen: React.FC = memo(() => {
     const renderGroupItem = ({ item, index }: { item: Group; index: number }) => (
         <Animated.View
             entering={FadeInRight.delay(index * 100)}
-            className="bg-primary rounded-2xl p-3 mb-2 flex-row items-center"
-            style={{ backgroundColor: theme.primary }}
+            className="bg-primary rounded-2xl flex-row items-center"
+            style={{ backgroundColor: theme.primary, padding: moderateScale(11), marginBottom: verticalScale(9) }}
         >
-            <Ionicons name={item.type === 'Home' ? 'home' : item.type === 'Trip' ? 'airplane' : 'people'} size={20} color={theme.accent} style={{ marginRight: 8 }} />
+            <Ionicons name={item.type === 'Home' ? 'home' : item.type === 'Trip' ? 'airplane' : 'people'} size={moderateScale(21)} color={theme.accent} style={{ marginRight: scale(9) }} />
             <View>
-                <Text className="text-base font-semibold" style={{ color: theme.text }}>{item.name}</Text>
-                <Text style={{ color: theme.text, fontSize: 12 }}>{item.members.length} members</Text>
+                <Text className="font-semibold" style={{ color: theme.text, fontSize: moderateScale(15) }}>{item.name}</Text>
+                <Text style={{ color: theme.text, fontSize: moderateScale(12) }}>{item.members.length} members</Text>
             </View>
         </Animated.View>
     );
@@ -212,26 +299,26 @@ const MainScreen: React.FC = memo(() => {
     const renderActivityItem = ({ item, index }: { item: Activity; index: number }) => (
         <Animated.View
             entering={FadeInLeft.delay(index * 100)}
-            className="mb-2 flex-row items-center"
-            style={{ backgroundColor: theme.primary, borderRadius: 10, padding: 8 }}
+            className="flex-row items-center"
+            style={{ backgroundColor: theme.primary, borderRadius: moderateScale(11), padding: moderateScale(9), marginBottom: verticalScale(9) }}
         >
-            <Ionicons name={item.icon as any} size={18} color={theme.accent} style={{ marginRight: 8 }} />
+            <Ionicons name={item.icon as any} size={moderateScale(19)} color={theme.accent} style={{ marginRight: scale(9) }} />
             <View style={{ flex: 1 }}>
-                <Text className="text-xs" style={{ color: theme.text }}>
+                <Text style={{ color: theme.text, fontSize: moderateScale(13) }}>
                     {item.description}
                 </Text>
-                <Text className="text-xs" style={{ color: theme.accent }}>
+                <Text style={{ color: theme.accent, fontSize: moderateScale(11) }}>
                     {item.groupName} • {item.date}
                 </Text>
             </View>
-            <Text style={{ color: theme.accent, fontSize: 12 }}>
+            <Text style={{ color: theme.accent, fontSize: moderateScale(13) }}>
                 ${item.amount.toFixed(2)}
             </Text>
         </Animated.View>
     );
 
     return (
-        <>
+        <View style={styles.container}>
             <Stack.Screen options={{ headerShown: false, gestureEnabled: false }} />
             <StatusBar barStyle="light-content" backgroundColor={theme.primary} />
             <SafeAreaView style={{ flex: 1, backgroundColor: theme.primary, paddingTop: androidPadding }}>
@@ -242,59 +329,59 @@ const MainScreen: React.FC = memo(() => {
                     ]}
                     className="rounded-b-[40px] md:rounded-b-[60px]"
                 />
-                <View className="flex-1 px-3 py-4 md:px-5 md:py-6">
-                    <View className="mb-4">
-                        {isUserDataLoaded && (
+                <View style={styles.content}>
+                    <View style={{ marginBottom: verticalScale(15) }}>
+                        {showWelcomeText && isUserDataLoaded && (
                             <TypewriterText
                                 text={`Welcome back, ${userName}!`}
                                 style={{
                                     color: theme.text,
-                                    fontSize: IS_SMALL_DEVICE ? 20 : 24,
+                                    fontSize: moderateScale(23),
                                     fontWeight: 'bold',
                                     fontFamily: 'PoppinsSemiBold',
-                                    marginBottom: 6
+                                    marginBottom: verticalScale(7)
                                 }}
-                                className="text-xl md:text-2xl font-bold pt-5"
+                                className="font-bold"
                             />
                         )}
-                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }} className='mt-2'>
-                            <View style={{ backgroundColor: theme.primary, borderRadius: 10, padding: 10, flex: 1, marginRight: 5 }}>
-                                <Text style={{ color: theme.text, fontSize: 14, fontFamily: 'PoppinsSemiBold' }}>You owe:</Text>
-                                <Text style={{ color: theme.accent, fontSize: IS_SMALL_DEVICE ? 16 : 18, fontFamily: 'PoppinsSemiBold' }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: verticalScale(7) }}>
+                            <View style={{ backgroundColor: theme.primary, borderRadius: moderateScale(11), padding: moderateScale(11), flex: 1, marginRight: scale(5) }}>
+                                <Text style={{ color: theme.text, fontSize: moderateScale(14), fontFamily: 'PoppinsSemiBold' }}>You owe:</Text>
+                                <Text style={{ color: theme.accent, fontSize: moderateScale(17), fontFamily: 'PoppinsSemiBold' }}>
                                     ${totalOwed.toFixed(2)}
                                 </Text>
                             </View>
-                            <View style={{ backgroundColor: theme.primary, borderRadius: 10, padding: 10, flex: 1, marginLeft: 5 }}>
-                                <Text style={{ color: theme.text, fontSize: 14, fontFamily: 'PoppinsSemiBold' }}>You are owed:</Text>
-                                <Text style={{ color: theme.accent, fontSize: IS_SMALL_DEVICE ? 16 : 18, fontFamily: 'PoppinsSemiBold' }}>
+                            <View style={{ backgroundColor: theme.primary, borderRadius: moderateScale(11), padding: moderateScale(11), flex: 1, marginLeft: scale(5) }}>
+                                <Text style={{ color: theme.text, fontSize: moderateScale(14), fontFamily: 'PoppinsSemiBold' }}>You are owed:</Text>
+                                <Text style={{ color: theme.accent, fontSize: moderateScale(17), fontFamily: 'PoppinsSemiBold' }}>
                                     ${totalOwedToYou.toFixed(2)}
                                 </Text>
                             </View>
                         </View>
                     </View>
 
-                    <View className="flex-row justify-between mb-4">
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: verticalScale(15) }}>
                         <TouchableOpacity
-                            className="bg-accent rounded-2xl flex-1 mr-2 p-3"
-                            style={{ backgroundColor: theme.accent }}
+                            className="bg-accent rounded-2xl flex-1 mr-2"
+                            style={{ backgroundColor: theme.accent, padding: moderateScale(11) }}
                             onPress={() => router.push('../Screens/Expenses')}
                         >
-                            <Text className="text-center text-sm font-semibold" style={{ color: theme.primary }}>
+                            <Text className="text-center font-semibold" style={{ color: theme.primary, fontSize: moderateScale(15) }}>
                                 Add Expense
                             </Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                            className="bg-primary rounded-2xl flex-1 ml-2 p-3"
-                            style={{ backgroundColor: theme.primary }}
+                            className="bg-primary rounded-2xl flex-1 ml-2"
+                            style={{ backgroundColor: theme.primary, padding: moderateScale(11) }}
                             onPress={() => router.push('../Screens/SettleUp')}
                         >
-                            <Text className="text-center text-sm font-semibold" style={{ color: theme.text }}>
+                            <Text className="text-center font-semibold" style={{ color: theme.text, fontSize: moderateScale(15) }}>
                                 Settle Up
                             </Text>
                         </TouchableOpacity>
                     </View>
 
-                    <Text className="text-base font-semibold mb-2" style={{ color: theme.accent }}>Your Groups</Text>
+                    <Text className="font-semibold mb-2" style={{ color: theme.accent, fontSize: moderateScale(17) }}>Your Groups</Text>
                     <FlatList
                         data={groups}
                         renderItem={renderGroupItem}
@@ -304,25 +391,25 @@ const MainScreen: React.FC = memo(() => {
                             <>
                                 {groups.length > 0 && (
                                     <TouchableOpacity
-                                        className="bg-primary rounded-2xl p-3 mb-2"
-                                        style={{ backgroundColor: theme.primary }}
+                                        className="bg-primary rounded-2xl"
+                                        style={{ backgroundColor: theme.primary, padding: moderateScale(11), marginBottom: verticalScale(11) }}
                                         onPress={() => router.push('/(tabs)/AllGroups')}
                                     >
-                                        <Text className="text-center text-sm font-semibold" style={{ color: theme.text }}>
+                                        <Text className="text-center font-semibold" style={{ color: theme.text, fontSize: moderateScale(15) }}>
                                             VIEW ALL GROUPS
                                         </Text>
                                     </TouchableOpacity>
                                 )}
                                 <TouchableOpacity
-                                    className="bg-primary rounded-2xl p-3 mb-4"
-                                    style={{ backgroundColor: theme.primary }}
+                                    className="bg-primary rounded-2xl"
+                                    style={{ backgroundColor: theme.primary, padding: moderateScale(11), marginBottom: verticalScale(19) }}
                                     onPress={() => router.push('../Screens/Create_join')}
                                 >
-                                    <Text className="text-center text-sm font-semibold" style={{ color: theme.text }}>
+                                    <Text className="text-center font-semibold" style={{ color: theme.text, fontSize: moderateScale(15) }}>
                                         Create or Join Group
                                     </Text>
                                 </TouchableOpacity>
-                                <Text className="text-base font-semibold mb-2" style={{ color: theme.accent }}>Recent Activity</Text>
+                                <Text className="font-semibold mb-4" style={{ color: theme.accent, fontSize: moderateScale(17) }}>Recent Activity</Text>
                                 <FlatList
                                     data={recentActivity}
                                     renderItem={renderActivityItem}
@@ -330,10 +417,11 @@ const MainScreen: React.FC = memo(() => {
                                     scrollEnabled={false}
                                     ListFooterComponent={() => (
                                         <TouchableOpacity
-                                            className="bg-primary rounded-2xl p-3 mt-2"                                            style={{ backgroundColor: theme.primary }}
+                                            className="bg-primary rounded-2xl"
+                                            style={{ backgroundColor: theme.primary, padding: moderateScale(11), marginTop: verticalScale(11) }}
                                             onPress={() => router.push('/(tabs)/Activities')}
                                         >
-                                            <Text className="text-center text-sm font-semibold" style={{ color: theme.text }}>
+                                            <Text className="text-center font-semibold" style={{ color: theme.text, fontSize: moderateScale(15) }}>
                                                 VIEW ALL ACTIVITIES
                                             </Text>
                                         </TouchableOpacity>
@@ -344,9 +432,10 @@ const MainScreen: React.FC = memo(() => {
                     />
                 </View>
             </SafeAreaView>
-        </>
+            {showBlur && <LoadingOverlay />}
+        </View>
     );
 });
 
 export default MainScreen;
-
+// comment

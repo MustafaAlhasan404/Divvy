@@ -19,6 +19,7 @@ import {
   KeyboardAvoidingView,
   Alert,
   ScrollView,
+  Image,
 } from 'react-native';
 import CountryPicker, { Country, CountryCode } from 'react-native-country-picker-modal';
 
@@ -86,6 +87,8 @@ const Signup: React.FC = memo(() => {
   const [animation] = useState(new Animated.Value(0));
   const [keyboardOffset] = useState(new Animated.Value(0));
   const [stage, setStage] = useState<number>(1);
+  const [suggestedUsernames, setSuggestedUsernames] = useState<string[]>([]);
+  const [isUsernameValid, setIsUsernameValid] = useState<boolean | null>(null);
 
   useEffect(() => {
     Animated.timing(animation, {
@@ -310,7 +313,6 @@ const Signup: React.FC = memo(() => {
           mode="date"
           display="spinner"
           onChange={(event, selectedDate) => {
-            setShowDatePicker(false);
             if (selectedDate) {
               setDateOfBirth(selectedDate);
             }
@@ -319,118 +321,217 @@ const Signup: React.FC = memo(() => {
           style={{ backgroundColor: theme.primary }}
         />
       )}
+      {showDatePicker && (
+        <TouchableOpacity
+          style={{
+            backgroundColor: theme.accent,
+            padding: 10,
+            borderRadius: 10,
+            marginTop: 10,
+            alignItems: 'center',
+          }}
+          onPress={() => setShowDatePicker(false)}
+        >
+          <Text style={[commonTextStyle, { color: theme.primary, fontSize: 16 }]}>Confirm Date</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+  
+
+  const generateUsernameSuggestions = async (name: string) => {
+    const suggestions = [
+      name.toLowerCase().replace(/\s/g, ''),
+      `${name.toLowerCase().replace(/\s/g, '')}${Math.floor(Math.random() * 1000)}`,
+      `${name.toLowerCase().split(' ')[0]}${Math.floor(Math.random() * 1000)}`,
+      `${name.toLowerCase().charAt(0)}${name.toLowerCase().split(' ')[1] || ''}${Math.floor(Math.random() * 1000)}`,
+      `${name.toLowerCase().replace(/\s/g, '')}_${Math.floor(Math.random() * 1000)}`,
+    ];
+
+    const validSuggestions = await Promise.all(
+      suggestions.map(async (suggestion) => {
+        const isAvailable = await isUsernameAvailable(suggestion);
+        return isAvailable ? suggestion : null;
+      })
+    );
+
+    return validSuggestions.filter((suggestion): suggestion is string => suggestion !== null);
+  };
+
+  const handleUsernameChange = async (text: string) => {
+    setUsername(text);
+    if (text.length > 0) {
+      const isAvailable = await isUsernameAvailable(text);
+      setIsUsernameValid(isAvailable);
+    } else {
+      setIsUsernameValid(null);
+    }
+  };
+
+  const renderUsernameInput = () => (
+    <View>
+      <View style={{ position: 'relative', marginBottom: 10 }}>
+        <TextInput
+          style={[commonTextStyle, {
+            backgroundColor: theme.primary,
+            color: theme.text,
+            borderRadius: 15,
+            padding: 15,
+            fontSize: 16,
+            paddingRight: 50,
+          }]}
+          value={username}
+          onChangeText={handleUsernameChange}
+          placeholder="Username"
+          placeholderTextColor="#6B7280"
+          keyboardAppearance="dark"
+        />
+        {isUsernameValid !== null && (
+          <Ionicons
+            name={isUsernameValid ? 'checkmark-circle' : 'close-circle'}
+            size={24}
+            color={isUsernameValid ? '#f7a600' : '#f7a600'}
+            style={{ position: 'absolute', right: 15, top: 15 }}
+          />
+        )}
+      </View>
+      {suggestedUsernames.length > 0 && (
+        <View style={{ marginTop: 10 }}>
+          <Text style={[commonTextStyle, { color: theme.text, marginBottom: 5 }]}>Suggested usernames:</Text>
+          {suggestedUsernames.map((suggestion, index) => (
+            <TouchableOpacity
+              key={index}
+              onPress={() => setUsername(suggestion)}
+              style={{ padding: 5 }}
+            >
+              <Text style={[commonTextStyle, { color: theme.accent }]}>{suggestion}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
     </View>
   );
 
   const renderStage = () => {
     switch (stage) {
       case 1:
-        return (
-          <>
-            {renderInput(fullName, setFullName, "Full Name")}
-            {renderInput(username, setUsername, "Username")}
-            {renderInput(email, setEmail, "Email")}
-          </>
-        );
+        return renderInput(fullName, setFullName, "Full Name");
       case 2:
+        return renderUsernameInput();
+      case 3:
+        return renderInput(email, setEmail, "Email");
+      case 4:
         return (
           <>
             {renderPhoneInput()}
             {renderDatePicker()}
           </>
         );
-      case 3:
-        return (
-          <>
-            {renderInput(password, setPassword, "Password", true, showPassword, setShowPassword)}
-            {renderInput(confirmPassword, setConfirmPassword, "Confirm Password", true, showConfirmPassword, setShowConfirmPassword)}
-          </>
-        );
-      default:
-        return null;
-    }
-  };
-
-  const handleNext = () => {
-    if (stage < 3) setStage(stage + 1);
-    else handleSignup();
-  };
-
-  const handleBack = () => {
-    if (stage > 1) setStage(stage - 1);
-  };
-
-  const renderContent = () => (
-    <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="px-4 py-6 md:px-6 md:py-10">
-      <View className="flex-1 justify-center">
-        <TypewriterText
-          text="Create Account"
-          style={{ color: theme.text, fontSize: 36, fontWeight: 'bold', marginBottom: 30, textAlign: 'center' }}
-        />
-        {renderStage()}
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 }}>
-          {stage > 1 && (
+        case 5:
+          return (
+            <>
+              {renderInput(password, setPassword, "Password", true, showPassword, setShowPassword)}
+              {renderInput(confirmPassword, setConfirmPassword, "Confirm Password", true, showConfirmPassword, setShowConfirmPassword)}
+            </>
+          );
+        default:
+          return null;
+      }
+    };
+  
+    const handleNext = async () => {
+      if (stage === 1) {
+        const suggestions = await generateUsernameSuggestions(fullName);
+        setSuggestedUsernames(suggestions);
+      }
+      if (stage < 5) setStage(stage + 1);
+      else handleSignup();
+    };
+  
+    const handleBack = () => {
+      if (stage > 1) setStage(stage - 1);
+    };
+  
+    const renderContent = () => (
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="px-4 py-6 md:px-6 md:py-10">
+        <View className="flex-1 justify-center">
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 }}>
+            <View className="px-2" style={{ flex: 1 }}>
+              <TypewriterText
+                text="Create Account"
+                style={{ color: theme.text, fontSize: 36, fontWeight: 'bold' }}
+              />
+            </View>
+            <Image
+              source={require('../../assets/app-logo-white.png')}
+              style={{ width: 60, height: 60 }}
+              resizeMode="contain"
+            />
+          </View>
+          {renderStage()}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 }}>
+            {stage > 1 && (
+              <TouchableOpacity
+                style={{ backgroundColor: theme.secondary, padding: 15, borderRadius: 15 }}
+                onPress={handleBack}
+              >
+                <Text style={[commonTextStyle, { color: theme.text, textAlign: 'center', fontSize: 18 }]}>
+                  Back
+                </Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
-              style={{ backgroundColor: theme.secondary, padding: 15, borderRadius: 15 }}
-              onPress={handleBack}
+              style={{ backgroundColor: theme.accent, padding: 15, borderRadius: 15, flex: 1, marginLeft: stage > 1 ? 10 : 0 }}
+              onPress={handleNext}
+              disabled={loading}
             >
-              <Text style={[commonTextStyle, { color: theme.text, textAlign: 'center', fontSize: 18 }]}>
-                Back
+              <Text style={[commonTextStyle, { color: theme.primary, textAlign: 'center', fontSize: 18, fontWeight: 'bold' }]}>
+                {stage === 5 ? (loading ? 'Signing Up...' : 'Sign Up') : 'Next'}
               </Text>
             </TouchableOpacity>
-          )}
-          <TouchableOpacity
-            style={{ backgroundColor: theme.accent, padding: 15, borderRadius: 15, flex: 1, marginLeft: stage > 1 ? 10 : 0 }}
-            onPress={handleNext}
-            disabled={loading}
-          >
-            <Text style={[commonTextStyle, { color: theme.primary, textAlign: 'center', fontSize: 18, fontWeight: 'bold' }]}>
-              {stage === 3 ? (loading ? 'Signing Up...' : 'Sign Up') : 'Next'}
+          </View>
+          <TouchableOpacity onPress={() => router.push('../Screens/Login')}>
+            <Text style={[commonTextStyle, { color: theme.text, textAlign: 'center', fontSize: 14, marginTop: 20 }]}>
+              Already have an account? <Text style={{ color: theme.accent }}>Log In</Text>
             </Text>
           </TouchableOpacity>
         </View>
-
-        <TouchableOpacity onPress={() => router.push('../Screens/Login')}>
-          <Text style={[commonTextStyle, { color: theme.text, textAlign: 'center', fontSize: 14, marginTop: 20 }]}>
-            Already have an account? <Text style={{ color: theme.accent }}>Log In</Text>
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
-  );
-
-  return (
-    <>
-      <Stack.Screen options={{ headerShown: false }} />
-      <StatusBar barStyle="light-content" backgroundColor={theme.primary} />
-      <SafeAreaView style={{ flex: 1, backgroundColor: theme.primary }}>
-        <Animated.View
-          style={[
-            backgroundStyle,
-            { position: 'absolute', top: -50, left: 0, right: 0, height: '125%', backgroundColor: theme.secondary },
-          ]}
-          className="rounded-t-[50px] md:rounded-t-[80px]"
-        />
-        {Platform.OS === 'ios' ? (
+      </ScrollView>
+    );
+  
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: false }} />
+        <StatusBar barStyle="light-content" backgroundColor={theme.primary} />
+        <SafeAreaView style={{ flex: 1, backgroundColor: theme.primary }}>
           <Animated.View
-            style={{
-              flex: 1,
-              transform: [{ translateY: keyboardOffset }],
-            }}
-          >
-            {renderContent()}
-          </Animated.View>
-        ) : (
-          <KeyboardAvoidingView
-            behavior="padding"
-            className="flex-1 mt-16"
-          >
-            {renderContent()}
-          </KeyboardAvoidingView>
-        )}
-      </SafeAreaView>
-    </>
-  );
-});
-
-export default Signup;
+            style={[
+              backgroundStyle,
+              { position: 'absolute', top: -50, left: 0, right: 0, height: '125%', backgroundColor: theme.secondary },
+            ]}
+            className="rounded-t-[50px] md:rounded-t-[80px]"
+          />
+          {Platform.OS === 'ios' ? (
+            <Animated.View
+              style={{
+                flex: 1,
+                transform: [{ translateY: keyboardOffset }],
+              }}
+            >
+              {renderContent()}
+            </Animated.View>
+          ) : (
+            <KeyboardAvoidingView
+              behavior="padding"
+              className="flex-1 mt-16"
+            >
+              {renderContent()}
+            </KeyboardAvoidingView>
+          )}
+        </SafeAreaView>
+      </>
+    );
+  });
+  
+  export default Signup;
+  
