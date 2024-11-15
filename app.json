@@ -4,6 +4,7 @@
     "slug": "divvy",
     "version": "1.0.0",
     "scheme": "divvy",
+    "newArchEnabled": true,
     "web": {
       "bundler": "metro",
       "output": "static",
@@ -20,9 +21,14 @@
       [
         "expo-font",
         {
-          "fonts": ["./assets/fonts/PoppinsSemiBold.ttf","./assets/fonts/PoppinsSemiBoldItalic.ttf","./assets/fonts/Montserrat.ttf"]
+          "fonts": [
+            "./assets/fonts/PoppinsSemiBold.ttf",
+            "./assets/fonts/PoppinsSemiBoldItalic.ttf",
+            "./assets/fonts/Montserrat.ttf"
+          ]
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -40,7 +46,8 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mustafa.dev.divvy"
     },
     "android": {
       "adaptiveIcon": {

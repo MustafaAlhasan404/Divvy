@@ -31,15 +31,16 @@ const TypewriterText: React.FC<TypewriterTextProps> = ({ text, delay = 100, styl
   const [showCursor, setShowCursor] = useState(true);
   const [isTypingComplete, setIsTypingComplete] = useState(false);
   const cursorRef = useRef<NodeJS.Timeout | null>(null);
+  const typingRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     let i = 0;
-    const typingEffect = setInterval(() => {
+    typingRef.current = setInterval(() => {
       if (i < text.length) {
-        setDisplayedText((prev) => prev + text.charAt(i));
+        setDisplayedText(text.substring(0, i + 1));
         i++;
       } else {
-        clearInterval(typingEffect);
+        if (typingRef.current) clearInterval(typingRef.current);
         setIsTypingComplete(true);
       }
     }, delay);
@@ -49,7 +50,7 @@ const TypewriterText: React.FC<TypewriterTextProps> = ({ text, delay = 100, styl
     }, 500);
 
     return () => {
-      clearInterval(typingEffect);
+      if (typingRef.current) clearInterval(typingRef.current);
       if (cursorRef.current) clearInterval(cursorRef.current);
     };
   }, [text, delay]);

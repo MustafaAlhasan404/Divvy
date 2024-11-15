@@ -46,7 +46,7 @@ const styles = StyleSheet.create({
     loadingText: {
         color: 'white',
         fontSize: moderateScale(16),
-        marginTop: verticalScale(10),
+        marginTop: verticalScale(20),
         fontFamily: 'PoppinsSemiBold',
     },    
     content: {
@@ -70,9 +70,10 @@ interface TypewriterTextProps {
     delay?: number;
     style?: TextStyle;
     className?: string;
+    onComplete?: () => void;
 }
 
-const TypewriterText: React.FC<TypewriterTextProps> = memo(({ text, delay = 100, style, className }) => {
+const TypewriterText: React.FC<TypewriterTextProps> = memo(({ text, delay = 100, style, className, onComplete }) => {
     const [displayedText, setDisplayedText] = useState('');
     const [showCursor, setShowCursor] = useState(true);
     const [isTypingComplete, setIsTypingComplete] = useState(false);
@@ -87,6 +88,7 @@ const TypewriterText: React.FC<TypewriterTextProps> = memo(({ text, delay = 100,
             } else {
                 clearInterval(typingEffect);
                 setIsTypingComplete(true);
+                onComplete?.();
             }
         }, delay);
 
@@ -98,7 +100,7 @@ const TypewriterText: React.FC<TypewriterTextProps> = memo(({ text, delay = 100,
             clearInterval(typingEffect);
             if (cursorRef.current) clearInterval(cursorRef.current);
         };
-    }, [text, delay]);
+    }, [text, delay, onComplete]);
 
     return (
         <Text style={style} className={className}>
@@ -165,9 +167,9 @@ const MainScreen: React.FC = memo(() => {
     const [isUserDataLoaded, setIsUserDataLoaded] = useState(false);
     const [totalOwed, setTotalOwed] = useState(0);
     const [totalOwedToYou, setTotalOwedToYou] = useState(0);
-    const [, setIsLoading] = useState(true);
-    const [showBlur, setShowBlur] = useState(true);
+    const [isUpdating, setIsUpdating] = useState(false);
     const [showWelcomeText, setShowWelcomeText] = useState(false);
+    const [hasShownWelcome, setHasShownWelcome] = useState(false);
 
     const androidPadding = Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0;
 
@@ -175,7 +177,6 @@ const MainScreen: React.FC = memo(() => {
         useCallback(() => {
             const onBackPress = () => true;
             const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-            setShowBlur(true);
             setShowWelcomeText(false);
             fetchData();
             return () => subscription.remove();
@@ -186,15 +187,17 @@ const MainScreen: React.FC = memo(() => {
         animation.value = withTiming(1, { duration: 900 });
         const user = auth.currentUser;
         if (user) {
+            setIsUpdating(true);
+            
             const userDocRef = doc(db, 'Users', user.uid);
             const unsubscribeUser = onSnapshot(userDocRef, (docSnapshot: DocumentSnapshot) => {
                 if (docSnapshot.exists()) {
                     const userData = docSnapshot.data();
-                    setUserName(userData?.username || 'User');  // Changed from fullName to username
+                    setUserName(userData?.username || 'User');
                 }
                 setIsUserDataLoaded(true);
+                setIsUpdating(false);
             });
-            
 
             const groupsQuery = query(collection(db, 'Groups'), where('members', 'array-contains', user.uid));
             const unsubscribeGroups = onSnapshot(groupsQuery, (snapshot) => {
@@ -236,13 +239,8 @@ const MainScreen: React.FC = memo(() => {
 
                     unsubscribeActivities.push(unsubscribeExpenses);
                 });
-
-                setIsLoading(false);
                 
-                setTimeout(() => {
-                    setShowBlur(false);
-                    setTimeout(() => setShowWelcomeText(true), 100);
-                }, 500);
+                setTimeout(() => setShowWelcomeText(true), 100);
 
                 return () => {
                     unsubscribeUser();
@@ -331,7 +329,7 @@ const MainScreen: React.FC = memo(() => {
                 />
                 <View style={styles.content}>
                     <View style={{ marginBottom: verticalScale(15) }}>
-                        {showWelcomeText && isUserDataLoaded && (
+                        {showWelcomeText && isUserDataLoaded && !hasShownWelcome ? (
                             <TypewriterText
                                 text={`Welcome back, ${userName}!`}
                                 style={{
@@ -342,7 +340,21 @@ const MainScreen: React.FC = memo(() => {
                                     marginBottom: verticalScale(7)
                                 }}
                                 className="font-bold"
+                                onComplete={() => setHasShownWelcome(true)}
                             />
+                        ) : (
+                            <Text 
+                                style={{
+                                    color: theme.text,
+                                    fontSize: moderateScale(23),
+                                    fontWeight: 'bold',
+                                    fontFamily: 'PoppinsSemiBold',
+                                    marginBottom: verticalScale(7)
+                                }}
+                                className="font-bold"
+                            >
+                                Welcome back, {userName}!
+                            </Text>
                         )}
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: verticalScale(7) }}>
                             <View style={{ backgroundColor: theme.primary, borderRadius: moderateScale(11), padding: moderateScale(11), flex: 1, marginRight: scale(5) }}>
@@ -432,10 +444,9 @@ const MainScreen: React.FC = memo(() => {
                     />
                 </View>
             </SafeAreaView>
-            {showBlur && <LoadingOverlay />}
+            {isUpdating && <LoadingOverlay />}
         </View>
     );
 });
 
 export default MainScreen;
-// comment

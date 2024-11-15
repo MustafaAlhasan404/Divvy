@@ -36,15 +36,16 @@ const TypewriterText: React.FC<{ text: string; delay?: number; style?: TextStyle
   const [showCursor, setShowCursor] = useState(true);
   const [isTypingComplete, setIsTypingComplete] = useState(false);
   const cursorRef = useRef<NodeJS.Timeout | null>(null);
+  const typingRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     let i = 0;
-    const typingEffect = setInterval(() => {
+    typingRef.current = setInterval(() => {
       if (i < text.length) {
-        setDisplayedText((prev) => prev + text.charAt(i));
+        setDisplayedText(text.substring(0, i + 1));
         i++;
       } else {
-        clearInterval(typingEffect);
+        if (typingRef.current) clearInterval(typingRef.current);
         setIsTypingComplete(true);
       }
     }, delay);
@@ -54,13 +55,13 @@ const TypewriterText: React.FC<{ text: string; delay?: number; style?: TextStyle
     }, 500);
 
     return () => {
-      clearInterval(typingEffect);
+      if (typingRef.current) clearInterval(typingRef.current);
       if (cursorRef.current) clearInterval(cursorRef.current);
     };
   }, [text, delay]);
 
   return (
-    <Text style={[commonTextStyle, style]}>
+    <Text style={style}>
       {displayedText}
       {!isTypingComplete && <Text style={{ opacity: showCursor ? 1 : 0 }}>|</Text>}
     </Text>
@@ -337,7 +338,6 @@ const Signup: React.FC = memo(() => {
       )}
     </View>
   );
-  
 
   const generateUsernameSuggestions = async (name: string) => {
     const suggestions = [
@@ -407,26 +407,26 @@ const Signup: React.FC = memo(() => {
               <Text style={[commonTextStyle, { color: theme.accent }]}>{suggestion}</Text>
             </TouchableOpacity>
           ))}
-        </View>
-      )}
-    </View>
-  );
-
-  const renderStage = () => {
-    switch (stage) {
-      case 1:
-        return renderInput(fullName, setFullName, "Full Name");
-      case 2:
-        return renderUsernameInput();
-      case 3:
-        return renderInput(email, setEmail, "Email");
-      case 4:
-        return (
-          <>
-            {renderPhoneInput()}
-            {renderDatePicker()}
-          </>
-        );
+          </View>
+        )}
+      </View>
+    );
+  
+    const renderStage = () => {
+      switch (stage) {
+        case 1:
+          return renderInput(fullName, setFullName, "Full Name");
+        case 2:
+          return renderUsernameInput();
+        case 3:
+          return renderInput(email, setEmail, "Email");
+        case 4:
+          return (
+            <>
+              {renderPhoneInput()}
+              {renderDatePicker()}
+            </>
+          );
         case 5:
           return (
             <>

@@ -31,15 +31,16 @@ const TypewriterText: React.FC<{ text: string; delay?: number; style?: TextStyle
   const [showCursor, setShowCursor] = useState(true);
   const [isTypingComplete, setIsTypingComplete] = useState(false);
   const cursorRef = useRef<NodeJS.Timeout | null>(null);
+  const typingRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     let i = 0;
-    const typingEffect = setInterval(() => {
+    typingRef.current = setInterval(() => {
       if (i < text.length) {
-        setDisplayedText((prev) => prev + text.charAt(i));
+        setDisplayedText(text.substring(0, i + 1));
         i++;
       } else {
-        clearInterval(typingEffect);
+        if (typingRef.current) clearInterval(typingRef.current);
         setIsTypingComplete(true);
       }
     }, delay);
@@ -49,7 +50,7 @@ const TypewriterText: React.FC<{ text: string; delay?: number; style?: TextStyle
     }, 500);
 
     return () => {
-      clearInterval(typingEffect);
+      if (typingRef.current) clearInterval(typingRef.current);
       if (cursorRef.current) clearInterval(cursorRef.current);
     };
   }, [text, delay]);
@@ -185,7 +186,7 @@ const Login: React.FC = () => {
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 }}>
           <View className="px-2" style={{ flex: 1 }}>
             <TypewriterText
-              text="Login In"
+              text="Log In"
               style={{
                 color: theme.text,
                 fontSize: 36,
