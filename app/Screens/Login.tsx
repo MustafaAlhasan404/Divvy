@@ -156,7 +156,7 @@ const Login: React.FC = () => {
         const userEmail = userDoc.data().email;
         userCredential = await Firebase.signInWithEmailAndPassword(auth, userEmail, password);
       }
-      
+
       if (!userCredential.user.emailVerified) {
         await Firebase.sendEmailVerification(userCredential.user);
         Alert.alert(
@@ -307,11 +307,14 @@ const Login: React.FC = () => {
         </TouchableOpacity>
       </View>
     </View>
-  )  
+  )
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: false }} />
+      <Stack.Screen options={{
+        headerShown: false,
+        gestureEnabled: false,
+      }} />
       <StatusBar barStyle="light-content" backgroundColor={theme.primary} />
       <SafeAreaView style={{ flex: 1, backgroundColor: theme.primary }}>
         <Animated.View

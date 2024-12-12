@@ -3,8 +3,17 @@
     "name": "Divvy",
     "slug": "divvy",
     "version": "1.0.0",
+    "icon": "./assets/app-logo.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#f7a600",
+      "imageResizeMode": "contain"
+    },
     "scheme": "divvy",
     "newArchEnabled": true,
+    "userInterfaceStyle": "light",
+    "orientation": "portrait",
     "web": {
       "bundler": "metro",
       "output": "static",
@@ -12,6 +21,7 @@
     },
     "plugins": [
       "expo-router",
+      "expo-splash-screen",
       [
         "expo-dev-launcher",
         {
@@ -33,14 +43,6 @@
     "experiments": {
       "typedRoutes": true,
       "tsconfigPaths": true
-    },
-    "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
     },
     "assetBundlePatterns": [
       "**/*"

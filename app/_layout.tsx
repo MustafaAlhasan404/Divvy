@@ -11,7 +11,10 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen 
+          name="(tabs)"
+          options={{ headerShown: false, gestureEnabled:false }} 
+        />
       </Stack>
     </ThemeProvider>
   );

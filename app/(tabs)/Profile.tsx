@@ -178,6 +178,7 @@ const ProfileSettings: React.FC = () => {
           headerTransparent: true,
           headerTitle: "Profile & Settings",
           headerTitleAlign: "center",
+          gestureEnabled: false,
           headerTitleStyle: {
             color: theme.text,
             fontSize: 20,

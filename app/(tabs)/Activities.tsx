@@ -122,7 +122,7 @@ const AllRecentActivitiesScreen: React.FC = () => {
     </Animated.View>
   ), [theme]);
 
-  const filteredActivities = activities.filter(activity => 
+  const filteredActivities = activities.filter(activity =>
     activity.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
     activity.groupName.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -130,12 +130,13 @@ const AllRecentActivitiesScreen: React.FC = () => {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: theme.primary }}>
       <StatusBar barStyle="light-content" backgroundColor={theme.primary} />
-      <Stack.Screen 
+      <Stack.Screen
         options={{
           headerShown: true,
           headerTransparent: true,
           headerTitle: "Recent Activities",
           headerTitleAlign: "center",
+          gestureEnabled: false,
           headerTitleStyle: {
             color: theme.text,
             fontSize: 20,
@@ -146,7 +147,7 @@ const AllRecentActivitiesScreen: React.FC = () => {
               <Ionicons name="arrow-back" size={24} color={theme.text} style={{ marginLeft: 15 }} />
             </TouchableOpacity>
           ),
-        }} 
+        }}
       />
       <Animated.View
         style={[

@@ -462,6 +462,7 @@ const Expenses: React.FC = memo(() => {
           headerTransparent: true,
           headerTitle: "Add Expense",
           headerTitleAlign: "center",
+          gestureEnabled: false,
           headerTitleStyle: {
             color: theme.text,
             fontSize: 20,

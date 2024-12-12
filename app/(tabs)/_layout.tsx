@@ -10,7 +10,7 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 const IS_SMALL_DEVICE = SCREEN_HEIGHT < 700;
 
 const TAB_BAR_HEIGHT = Platform.OS === 'ios' 
-  ? (IS_SMALL_DEVICE ? 75 : 100) 
+  ? (IS_SMALL_DEVICE ? 75 : 90) 
   : (IS_SMALL_DEVICE ? 50 : 70);
 
 const INNER_TAB_BAR_HEIGHT = Platform.OS === 'ios' 

@@ -217,7 +217,10 @@ const ForgotPassword: React.FC = memo(() => {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: false }} />
+      <Stack.Screen options={{
+        headerShown: false,
+        gestureEnabled: false,
+      }} />
       <StatusBar barStyle="light-content" backgroundColor={theme.primary} />
       <SafeAreaView style={{ flex: 1, backgroundColor: theme.primary }}>
         <Animated.View

@@ -349,6 +349,7 @@ const SettleUp: React.FC = () => {
           headerTransparent: true,
           headerTitle: "Settle Up",
           headerTitleAlign: "center",
+          gestureEnabled: false,
           headerTitleStyle: {
             color: theme.text,
             fontSize: 20,

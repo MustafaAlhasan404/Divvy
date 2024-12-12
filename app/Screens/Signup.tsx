@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Stack, useRouter } from 'expo-router';
 import * as Firebase from 'firebase/auth';
-import { doc, setDoc, serverTimestamp} from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import React, { useState, memo, useEffect, useRef } from 'react';
 import {
   Animated,
@@ -407,131 +407,133 @@ const Signup: React.FC = memo(() => {
               <Text style={[commonTextStyle, { color: theme.accent }]}>{suggestion}</Text>
             </TouchableOpacity>
           ))}
-          </View>
-        )}
-      </View>
-    );
-  
-    const renderStage = () => {
-      switch (stage) {
-        case 1:
-          return renderInput(fullName, setFullName, "Full Name");
-        case 2:
-          return renderUsernameInput();
-        case 3:
-          return renderInput(email, setEmail, "Email");
-        case 4:
-          return (
-            <>
-              {renderPhoneInput()}
-              {renderDatePicker()}
-            </>
-          );
-        case 5:
-          return (
-            <>
-              {renderInput(password, setPassword, "Password", true, showPassword, setShowPassword)}
-              {renderInput(confirmPassword, setConfirmPassword, "Confirm Password", true, showConfirmPassword, setShowConfirmPassword)}
-            </>
-          );
-        default:
-          return null;
-      }
-    };
-  
-    const handleNext = async () => {
-      if (stage === 1) {
-        const suggestions = await generateUsernameSuggestions(fullName);
-        setSuggestedUsernames(suggestions);
-      }
-      if (stage < 5) setStage(stage + 1);
-      else handleSignup();
-    };
-  
-    const handleBack = () => {
-      if (stage > 1) setStage(stage - 1);
-    };
-  
-    const renderContent = () => (
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="px-4 py-6 md:px-6 md:py-10">
-        <View className="flex-1 justify-center">
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 }}>
-            <View className="px-2" style={{ flex: 1 }}>
-              <TypewriterText
-                text="Create Account"
-                style={{ color: theme.text, fontSize: 36, fontWeight: 'bold' }}
-              />
-            </View>
-            <Image
-              source={require('../../assets/app-logo-white.png')}
-              style={{ width: 60, height: 60 }}
-              resizeMode="contain"
+        </View>
+      )}
+    </View>
+  );
+
+  const renderStage = () => {
+    switch (stage) {
+      case 1:
+        return renderInput(fullName, setFullName, "Full Name");
+      case 2:
+        return renderUsernameInput();
+      case 3:
+        return renderInput(email, setEmail, "Email");
+      case 4:
+        return (
+          <>
+            {renderPhoneInput()}
+            {renderDatePicker()}
+          </>
+        );
+      case 5:
+        return (
+          <>
+            {renderInput(password, setPassword, "Password", true, showPassword, setShowPassword)}
+            {renderInput(confirmPassword, setConfirmPassword, "Confirm Password", true, showConfirmPassword, setShowConfirmPassword)}
+          </>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const handleNext = async () => {
+    if (stage === 1) {
+      const suggestions = await generateUsernameSuggestions(fullName);
+      setSuggestedUsernames(suggestions);
+    }
+    if (stage < 5) setStage(stage + 1);
+    else handleSignup();
+  };
+
+  const handleBack = () => {
+    if (stage > 1) setStage(stage - 1);
+  };
+
+  const renderContent = () => (
+    <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="px-4 py-6 md:px-6 md:py-10">
+      <View className="flex-1 justify-center">
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 }}>
+          <View className="px-2" style={{ flex: 1 }}>
+            <TypewriterText
+              text="Create Account"
+              style={{ color: theme.text, fontSize: 36, fontWeight: 'bold' }}
             />
           </View>
-          {renderStage()}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 }}>
-            {stage > 1 && (
-              <TouchableOpacity
-                style={{ backgroundColor: theme.secondary, padding: 15, borderRadius: 15 }}
-                onPress={handleBack}
-              >
-                <Text style={[commonTextStyle, { color: theme.text, textAlign: 'center', fontSize: 18 }]}>
-                  Back
-                </Text>
-              </TouchableOpacity>
-            )}
+          <Image
+            source={require('../../assets/app-logo-white.png')}
+            style={{ width: 60, height: 60 }}
+            resizeMode="contain"
+          />
+        </View>
+        {renderStage()}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 }}>
+          {stage > 1 && (
             <TouchableOpacity
-              style={{ backgroundColor: theme.accent, padding: 15, borderRadius: 15, flex: 1, marginLeft: stage > 1 ? 10 : 0 }}
-              onPress={handleNext}
-              disabled={loading}
+              style={{ backgroundColor: theme.secondary, padding: 15, borderRadius: 15 }}
+              onPress={handleBack}
             >
-              <Text style={[commonTextStyle, { color: theme.primary, textAlign: 'center', fontSize: 18, fontWeight: 'bold' }]}>
-                {stage === 5 ? (loading ? 'Signing Up...' : 'Sign Up') : 'Next'}
+              <Text style={[commonTextStyle, { color: theme.text, textAlign: 'center', fontSize: 18 }]}>
+                Back
               </Text>
             </TouchableOpacity>
-          </View>
-          <TouchableOpacity onPress={() => router.push('../Screens/Login')}>
-            <Text style={[commonTextStyle, { color: theme.text, textAlign: 'center', fontSize: 14, marginTop: 20 }]}>
-              Already have an account? <Text style={{ color: theme.accent }}>Log In</Text>
+          )}
+          <TouchableOpacity
+            style={{ backgroundColor: theme.accent, padding: 15, borderRadius: 15, flex: 1, marginLeft: stage > 1 ? 10 : 0 }}
+            onPress={handleNext}
+            disabled={loading}
+          >
+            <Text style={[commonTextStyle, { color: theme.primary, textAlign: 'center', fontSize: 18, fontWeight: 'bold' }]}>
+              {stage === 5 ? (loading ? 'Signing Up...' : 'Sign Up') : 'Next'}
             </Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
-    );
-  
-    return (
-      <>
-        <Stack.Screen options={{ headerShown: false }} />
-        <StatusBar barStyle="light-content" backgroundColor={theme.primary} />
-        <SafeAreaView style={{ flex: 1, backgroundColor: theme.primary }}>
+        <TouchableOpacity onPress={() => router.push('../Screens/Login')}>
+          <Text style={[commonTextStyle, { color: theme.text, textAlign: 'center', fontSize: 14, marginTop: 20 }]}>
+            Already have an account? <Text style={{ color: theme.accent }}>Log In</Text>
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
+  );
+
+  return (
+    <>
+      <Stack.Screen options={{
+        headerShown: false,
+        gestureEnabled: false,
+      }} />
+      <StatusBar barStyle="light-content" backgroundColor={theme.primary} />
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.primary }}>
+        <Animated.View
+          style={[
+            backgroundStyle,
+            { position: 'absolute', top: -50, left: 0, right: 0, height: '125%', backgroundColor: theme.secondary },
+          ]}
+          className="rounded-t-[50px] md:rounded-t-[80px]"
+        />
+        {Platform.OS === 'ios' ? (
           <Animated.View
-            style={[
-              backgroundStyle,
-              { position: 'absolute', top: -50, left: 0, right: 0, height: '125%', backgroundColor: theme.secondary },
-            ]}
-            className="rounded-t-[50px] md:rounded-t-[80px]"
-          />
-          {Platform.OS === 'ios' ? (
-            <Animated.View
-              style={{
-                flex: 1,
-                transform: [{ translateY: keyboardOffset }],
-              }}
-            >
-              {renderContent()}
-            </Animated.View>
-          ) : (
-            <KeyboardAvoidingView
-              behavior="padding"
-              className="flex-1 mt-16"
-            >
-              {renderContent()}
-            </KeyboardAvoidingView>
-          )}
-        </SafeAreaView>
-      </>
-    );
-  });
-  
-  export default Signup;
-  
+            style={{
+              flex: 1,
+              transform: [{ translateY: keyboardOffset }],
+            }}
+          >
+            {renderContent()}
+          </Animated.View>
+        ) : (
+          <KeyboardAvoidingView
+            behavior="padding"
+            className="flex-1 mt-16"
+          >
+            {renderContent()}
+          </KeyboardAvoidingView>
+        )}
+      </SafeAreaView>
+    </>
+  );
+});
+
+export default Signup;

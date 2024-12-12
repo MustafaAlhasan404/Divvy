@@ -22,12 +22,12 @@ const Home = memo(() => {
     setFontsLoaded(true);
     SplashScreen.hideAsync();
   };
-  
+
   useEffect(() => {
     loadFonts();
     // Firebase is now initialized here
     console.log('Firebase initialized:', app);
-  }, []);  
+  }, []);
 
   useEffect(() => {
     if (fontsLoaded) {
@@ -37,8 +37,11 @@ const Home = memo(() => {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Divvy.inc',
-         headerShown: false }} />
+      <Stack.Screen options={{
+        title: 'Divvy.inc',
+        gestureEnabled: false,
+        headerShown: false
+      }} />
       <Container children={undefined} />
     </>
   );

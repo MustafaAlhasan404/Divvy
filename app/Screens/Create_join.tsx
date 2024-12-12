@@ -19,7 +19,7 @@ import {
 } from 'react-native';
 
 import { useTheme } from '../../ThemeContext';
-import { db , auth } from '../../firebaseConfig';
+import { db, auth } from '../../firebaseConfig';
 import { updateGroup, Group } from '../../firestore';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -129,8 +129,8 @@ const Create_join: React.FC = memo(() => {
   };
 
   const renderContent = () => (
-    <ScrollView 
-      style={{ flexGrow: 1 }} 
+    <ScrollView
+      style={{ flexGrow: 1 }}
       contentContainerStyle={{ paddingHorizontal: 24, paddingTop: SCREEN_HEIGHT * 0.1, paddingBottom: 36 }}
     >
       <View className="flex-1 mt-16">
@@ -215,10 +215,11 @@ const Create_join: React.FC = memo(() => {
 
   return (
     <>
-      <Stack.Screen 
+      <Stack.Screen
         options={{
           headerShown: true,
           headerTransparent: true,
+          gestureEnabled: false,
           headerBackVisible: false,
           headerTitle: "",
           headerTitleAlign: "center",
@@ -232,7 +233,7 @@ const Create_join: React.FC = memo(() => {
               <Ionicons name="arrow-back" size={28} color={theme.text} />
             </TouchableOpacity>
           ),
-        }} 
+        }}
       />
       <StatusBar barStyle="light-content" backgroundColor={theme.secondary} />
       <SafeAreaView style={{ flex: 1, backgroundColor: theme.secondary }}>

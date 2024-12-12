@@ -6,7 +6,7 @@ import { Container } from '~/components/Container';
 export default function NotFoundScreen() {
   return (
     <>
-      <Stack.Screen options={{ title: '404 - Not Found', headerShown: false }} />
+      <Stack.Screen options={{ title: '404 - Not Found', headerShown: false , gestureEnabled: false }} />
       <Container>
         <View className={styles.content}>
           <Text className={styles.errorCode}>404</Text>

@@ -56,7 +56,7 @@ const AllGroupsScreen: React.FC = memo(() => {
     ],
   }));
 
-  const filteredGroups = groups.filter(group => 
+  const filteredGroups = groups.filter(group =>
     group.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -67,11 +67,11 @@ const AllGroupsScreen: React.FC = memo(() => {
       className="rounded-2xl p-4 mb-4 flex-row items-center justify-between"
     >
       <View className="flex-row items-center">
-        <Ionicons 
-          name={item.type === 'Home' ? 'home' : item.type === 'Trip' ? 'airplane' : 'people'} 
-          size={24} 
-          color={theme.accent} 
-          style={{ marginRight: 10 }} 
+        <Ionicons
+          name={item.type === 'Home' ? 'home' : item.type === 'Trip' ? 'airplane' : 'people'}
+          size={24}
+          color={theme.accent}
+          style={{ marginRight: 10 }}
         />
         <View>
           <Text style={{ color: theme.text }} className="text-lg font-semibold">{item.name}</Text>
@@ -111,18 +111,19 @@ const AllGroupsScreen: React.FC = memo(() => {
   );
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       style={{ flex: 1 }}
     >
       <SafeAreaView style={{ flex: 1, backgroundColor: theme.primary }}>
         <StatusBar barStyle="light-content" backgroundColor={theme.primary} />
-        <Stack.Screen 
+        <Stack.Screen
           options={{
             headerShown: true,
             headerTransparent: true,
             headerTitle: "My Groups",
             headerTitleAlign: "center",
+            gestureEnabled: false,
             headerTitleStyle: {
               color: theme.text,
               fontSize: 20,
@@ -138,7 +139,7 @@ const AllGroupsScreen: React.FC = memo(() => {
                 <Ionicons name="add" size={24} color={theme.text} style={{ marginRight: 15 }} />
               </TouchableOpacity>
             ),
-          }} 
+          }}
         />
         <Animated.View
           style={[
